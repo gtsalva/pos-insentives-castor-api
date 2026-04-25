@@ -19,6 +19,7 @@ describe('UsersService', () => {
       ],
     }).compile();
     service = module.get(UsersService);
+    jest.clearAllMocks();
   });
 
   it('findByEmail returns user when found', async () => {

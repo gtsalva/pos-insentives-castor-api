@@ -22,10 +22,12 @@ export class UsersService {
 
   async create(dto: CreateUserDto): Promise<User> {
     const existing = await this.findByEmail(dto.email);
-    if (existing) throw new ConflictException('Email already in use');
+    if (existing) throw new ConflictException('El correo ya está registrado');
     const password_hash = await bcrypt.hash(dto.password, 10);
     const user = this.userRepo.create({ ...dto, password_hash });
-    return this.userRepo.save(user);
+    const saved = await this.userRepo.save(user);
+    const { password_hash: _, ...result } = saved;
+    return result as User;
   }
 
   async findAll(): Promise<User[]> {
