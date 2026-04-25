@@ -16,6 +16,14 @@ export class UsersService {
     return this.userRepo.findOne({ where: { email } });
   }
 
+  async findByEmailWithHash(email: string): Promise<User | null> {
+    return this.userRepo
+      .createQueryBuilder('u')
+      .addSelect('u.password_hash')
+      .where('u.email = :email', { email })
+      .getOne();
+  }
+
   async findById(user_id: string): Promise<User | null> {
     return this.userRepo.findOne({ where: { user_id } });
   }

@@ -14,7 +14,7 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto): Promise<AuthResponse> {
-    const user = await this.usersService.findByEmail(dto.email);
+    const user = await this.usersService.findByEmailWithHash(dto.email);
     if (!user || !user.is_active) throw new UnauthorizedException('Credenciales inválidas');
 
     const valid = await bcrypt.compare(dto.password, user.password_hash);
