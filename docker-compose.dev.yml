@@ -1,0 +1,11 @@
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+  pos-api:
+    build:
+      target: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run start:dev
