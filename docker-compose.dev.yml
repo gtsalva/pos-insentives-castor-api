@@ -5,6 +5,10 @@ services:
   pos-api:
     build:
       target: development
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      API_PORT: "3000"
     volumes:
       - .:/app
       - /app/node_modules
