@@ -15,7 +15,7 @@ Este archivo define las reglas específicas de `pos-api`.
 El acceso diferenciado entre las dos apps **no se resuelve en el frontend** — se resuelve aquí,
 en los guards de NestJS. El backend es la fuente de verdad de seguridad.
 
-**Deploy:** Railway (producción) · `localhost:3000` (desarrollo)
+**Deploy:** Railway (producción) · `localhost:3001` (desarrollo local — 3000 lo ocupa kama-platform-backend)
 **Base de datos:** PostgreSQL 16 (Docker en dev, Railway Postgres en prod)
 
 ---
@@ -285,17 +285,20 @@ Toda respuesta exitosa se envuelve en:
 }
 ```
 
-Para listas paginadas:
+Para listas paginadas el `TransformInterceptor` envuelve el `PaginatedResult` completo bajo `data`:
 ```json
 {
-  "data": [ ... ],
-  "total": 150,
-  "page": 1,
-  "limit": 20,
+  "data": {
+    "data": [ ... ],
+    "total": 150,
+    "page": 1,
+    "limit": 20
+  },
   "message": "OK",
   "statusCode": 200
 }
 ```
+Los frontends deben mapear `res.data` (tipo `PaginatedResult<T>`), NO `res.data.data`.
 
 ```typescript
 // common/interceptors/transform.interceptor.ts
@@ -567,7 +570,7 @@ const document = SwaggerModule.createDocument(app, config);
 SwaggerModule.setup('api/docs', app, document);
 ```
 
-Acceso en desarrollo: `http://localhost:3000/api/docs`
+Acceso en desarrollo: `http://localhost:3001/api/docs`
 
 ---
 
@@ -689,7 +692,7 @@ DB_PASSWORD=pos_password_segura
 DB_NAME=pos_castor
 JWT_SECRET=cambia_esto_min_32_chars_secreto
 JWT_EXPIRES_IN=8h
-API_PORT=3000
+API_PORT=3001
 NODE_ENV=development
 CORS_ORIGIN_CAJA=http://localhost:4200
 CORS_ORIGIN_ADMIN=http://localhost:4201
@@ -719,7 +722,7 @@ services:
     restart: unless-stopped
     env_file: .env
     ports:
-      - "${API_PORT:-3000}:3000"
+      - "${API_PORT:-3001}:3000"
     depends_on:
       - postgres
 
@@ -732,7 +735,7 @@ volumes:
 services:
   postgres:
     ports:
-      - "5432:5432"
+      - "5433:5432"   # 5433 en host, 5432 dentro del contenedor (evita conflicto con kama-platform-backend)
   pos-api:
     build:
       target: development
@@ -827,7 +830,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 ### Verificar que funciona
 ```bash
-curl http://localhost:3000/api/docs
+curl http://localhost:3001/api/docs
 # Debe retornar HTML del Swagger UI
 ```
 
