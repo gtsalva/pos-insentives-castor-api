@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { Client } from '../../clients/entities/client.entity';
 import { SaleItem } from './sale-item.entity';
 
 export enum PaymentMethod {
@@ -39,6 +40,12 @@ export class Sale {
   @Column({ nullable: true })
   void_reason: string;
 
+  @Column({ nullable: true, length: 100 })
+  payment_reference: string | null;
+
+  @Column({ nullable: true })
+  payment_document_url: string | null;
+
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   total: number;
 
@@ -48,6 +55,13 @@ export class Sale {
   @ManyToOne(() => User)
   @JoinColumn({ name: 'salesperson_id' })
   salesperson: User;
+
+  @Column({ nullable: true })
+  client_id: string;
+
+  @ManyToOne(() => Client, { nullable: true, eager: false })
+  @JoinColumn({ name: 'client_id' })
+  client: Client;
 
   @OneToMany(() => SaleItem, (item) => item.sale, { cascade: true })
   items: SaleItem[];
