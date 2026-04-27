@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Sale, SaleStatus } from './entities/sale.entity';
 import { SaleItem } from './entities/sale-item.entity';
 import { Product } from '../products/entities/product.entity';
@@ -159,7 +159,7 @@ export class SalesService {
     });
   }
 
-  private async generateSaleNumber(manager: any): Promise<string> {
+  private async generateSaleNumber(manager: EntityManager): Promise<string> {
     const year = new Date().getFullYear();
     const count = await manager.count(Sale);
     return `VTA-${year}-${String(count + 1).padStart(6, '0')}`;
