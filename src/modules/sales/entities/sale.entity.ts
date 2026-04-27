@@ -46,6 +46,9 @@ export class Sale {
   @Column({ type: 'varchar', nullable: true })
   payment_document_url: string | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  payment_receipt_url: string | null;
+
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   total: number;
 

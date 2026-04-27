@@ -100,4 +100,60 @@ export class StorageController {
     if (!existsSync(filePath)) throw new NotFoundException('Archivo no encontrado');
     res.sendFile(filePath);
   }
+
+  @Post('upload-receipt')
+  @ApiOperation({ summary: 'Subir comprobante de pago (imagen o PDF)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiResponse({ status: 201, type: UploadResponseDto })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: join(process.cwd(), 'uploads', 'receipts'),
+        filename: (
+          _req: Express.Request,
+          _file: Express.Multer.File,
+          cb: (error: Error | null, filename: string) => void,
+        ) => {
+          cb(null, `${randomUUID()}-${Date.now()}`);
+        },
+      }),
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (
+        _req: Express.Request,
+        file: Express.Multer.File,
+        cb: (error: Error | null, acceptFile: boolean) => void,
+      ) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        if (!allowed.includes(file.mimetype)) {
+          cb(new BadRequestException('Solo se permiten imágenes (JPEG, PNG, WebP) o PDF'), false);
+        } else {
+          cb(null, true);
+        }
+      },
+    }),
+  )
+  uploadReceipt(@UploadedFile() file: Express.Multer.File): UploadResponseDto {
+    if (!file) throw new BadRequestException('No se recibió archivo');
+    const apiUrl = this.config.get<string>('API_URL') ?? 'http://localhost:3001';
+    return { url: `${apiUrl}/api/storage/receipts/${file.filename}` };
+  }
+
+  @Get('receipts/:filename')
+  @ApiOperation({ summary: 'Descargar comprobante de pago' })
+  @ApiResponse({ status: 200, description: 'Archivo stream' })
+  serveReceipt(
+    @Param('filename') filename: string,
+    @Res() res: Response,
+  ): void {
+    const safe = basename(filename);
+    const filePath = join(process.cwd(), 'uploads', 'receipts', safe);
+    if (!existsSync(filePath)) throw new NotFoundException('Archivo no encontrado');
+    res.sendFile(filePath);
+  }
 }

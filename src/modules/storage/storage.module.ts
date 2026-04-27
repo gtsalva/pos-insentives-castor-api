@@ -11,5 +11,6 @@ import { StorageController } from './storage.controller';
 export class StorageModule implements OnModuleInit {
   onModuleInit(): void {
     mkdirSync(join(process.cwd(), 'uploads', 'vouchers'), { recursive: true });
+    mkdirSync(join(process.cwd(), 'uploads', 'receipts'), { recursive: true });
   }
 }

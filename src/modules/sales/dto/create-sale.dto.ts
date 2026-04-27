@@ -41,6 +41,12 @@ export class CreateSaleDto {
   @MaxLength(2048)
   payment_document_url?: string;
 
+  @IsOptional()
+  @IsString()
+  @IsUrl({ require_tld: false })
+  @MaxLength(2048)
+  payment_receipt_url?: string;
+
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })

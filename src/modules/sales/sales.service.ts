@@ -72,6 +72,7 @@ export class SalesService {
         client_id: dto.client_id,
         payment_reference: dto.payment_reference ?? null,
         payment_document_url: dto.payment_document_url ?? null,
+        payment_receipt_url: dto.payment_receipt_url ?? null,
         total,
         status: SaleStatus.COMPLETED,
       });
