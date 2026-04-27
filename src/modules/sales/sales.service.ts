@@ -69,6 +69,9 @@ export class SalesService {
         sale_number,
         payment_method: dto.payment_method,
         salesperson_id,
+        client_id: dto.client_id,
+        payment_reference: dto.payment_reference ?? null,
+        payment_document_url: dto.payment_document_url ?? null,
         total,
         status: SaleStatus.COMPLETED,
       });
@@ -82,7 +85,7 @@ export class SalesService {
 
       return manager.findOne(Sale, {
         where: { sale_id: savedSale.sale_id },
-        relations: ['items', 'salesperson'],
+        relations: ['items', 'salesperson', 'client'],
       }) as Promise<Sale>;
     });
   }
@@ -117,7 +120,7 @@ export class SalesService {
   async findOne(sale_id: string): Promise<Sale> {
     const sale = await this.saleRepo.findOne({
       where: { sale_id },
-      relations: ['items', 'salesperson'],
+      relations: ['items', 'salesperson', 'client'],
     });
     if (!sale) throw new NotFoundException(`Venta ${sale_id} no encontrada`);
     return sale;
