@@ -60,12 +60,20 @@ export class StorageController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: join(process.cwd(), 'uploads', 'vouchers'),
-        filename: (_req, _file, cb) => {
+        filename: (
+          _req: Express.Request,
+          _file: Express.Multer.File,
+          cb: (error: Error | null, filename: string) => void,
+        ) => {
           cb(null, `${randomUUID()}-${Date.now()}.pdf`);
         },
       }),
       limits: { fileSize: 5 * 1024 * 1024 },
-      fileFilter: (_req, file, cb) => {
+      fileFilter: (
+        _req: Express.Request,
+        file: Express.Multer.File,
+        cb: (error: Error | null, acceptFile: boolean) => void,
+      ) => {
         if (file.mimetype !== 'application/pdf') {
           cb(new BadRequestException('Solo se permiten archivos PDF'), false);
         } else {

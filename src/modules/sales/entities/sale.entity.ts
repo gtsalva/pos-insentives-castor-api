@@ -37,13 +37,13 @@ export class Sale {
   @Column({ type: 'enum', enum: SaleStatus, default: SaleStatus.COMPLETED })
   status: SaleStatus;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   void_reason: string | null;
 
-  @Column({ nullable: true, length: 100 })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   payment_reference: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   payment_document_url: string | null;
 
   @Column({ type: 'numeric', precision: 10, scale: 2 })
@@ -56,8 +56,8 @@ export class Sale {
   @JoinColumn({ name: 'salesperson_id' })
   salesperson: User;
 
-  @Column({ nullable: true })
-  client_id: string;
+  @Column({ type: 'varchar', nullable: true })
+  client_id: string | null;
 
   @ManyToOne(() => Client, { nullable: true, eager: false })
   @JoinColumn({ name: 'client_id' })
