@@ -23,3 +23,7 @@ npm-debug.log*
 *.sln
 *.sw?
 .worktrees/
+
+# uploaded files (keep directory structure via .gitkeep)
+uploads/vouchers/*
+!uploads/vouchers/.gitkeep
