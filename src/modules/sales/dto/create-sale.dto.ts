@@ -7,6 +7,9 @@ import {
   IsArray,
   ValidateNested,
   ArrayMinSize,
+  IsOptional,
+  IsString,
+  MaxLength,
 } from 'class-validator';
 import { PaymentMethod } from '../entities/sale.entity';
 
@@ -22,6 +25,18 @@ export class CreateSaleItemDto {
 export class CreateSaleDto {
   @IsEnum(PaymentMethod)
   payment_method: PaymentMethod;
+
+  @IsUUID()
+  client_id: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  payment_reference?: string;
+
+  @IsOptional()
+  @IsString()
+  payment_document_url?: string;
 
   @IsArray()
   @ArrayMinSize(1)
