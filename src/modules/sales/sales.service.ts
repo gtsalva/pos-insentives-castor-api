@@ -96,7 +96,8 @@ export class SalesService {
     const qb = this.saleRepo
       .createQueryBuilder('s')
       .leftJoinAndSelect('s.salesperson', 'u')
-      .leftJoinAndSelect('s.items', 'i');
+      .leftJoinAndSelect('s.items', 'i')
+      .leftJoinAndSelect('s.client', 'c');
 
     if (from_date) qb.andWhere('s.created_at >= :from_date', { from_date });
     if (to_date) {
@@ -153,7 +154,7 @@ export class SalesService {
 
       return manager.findOne(Sale, {
         where: { sale_id },
-        relations: ['items', 'salesperson'],
+        relations: ['items', 'salesperson', 'client'],
       }) as Promise<Sale>;
     });
   }
