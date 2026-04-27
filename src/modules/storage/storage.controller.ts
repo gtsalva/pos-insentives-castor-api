@@ -22,7 +22,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
-import { existsSync } from 'fs';
+import { closeSync, existsSync, openSync, readSync } from 'fs';
 import { basename, extname, join } from 'path';
 import { randomUUID } from 'crypto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -161,6 +161,26 @@ export class StorageController {
     const safe = basename(filename);
     const filePath = join(process.cwd(), 'uploads', 'receipts', safe);
     if (!existsSync(filePath)) throw new NotFoundException('Archivo no encontrado');
+
+    // Legacy files have no extension — detect MIME from magic bytes so the
+    // browser renders them instead of downloading as application/octet-stream.
+    if (!extname(safe)) {
+      res.setHeader('Content-Type', this.detectMime(filePath));
+    }
+
     res.sendFile(filePath);
+  }
+
+  private detectMime(filePath: string): string {
+    const buf = Buffer.alloc(8);
+    const fd = openSync(filePath, 'r');
+    readSync(fd, buf, 0, 8, 0);
+    closeSync(fd);
+
+    if (buf[0] === 0xff && buf[1] === 0xd8) return 'image/jpeg';
+    if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'image/png';
+    if (buf.slice(0, 4).toString('ascii') === 'RIFF') return 'image/webp';
+    if (buf.slice(0, 4).toString('ascii') === '%PDF') return 'application/pdf';
+    return 'application/octet-stream';
   }
 }
