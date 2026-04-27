@@ -27,3 +27,5 @@ npm-debug.log*
 # uploaded files (keep directory structure via .gitkeep)
 uploads/vouchers/*
 !uploads/vouchers/.gitkeep
+
+uploads/receipts/
