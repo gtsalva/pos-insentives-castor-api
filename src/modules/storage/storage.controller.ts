@@ -23,7 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import { existsSync } from 'fs';
-import { basename, join } from 'path';
+import { basename, extname, join } from 'path';
 import { randomUUID } from 'crypto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -117,10 +117,17 @@ export class StorageController {
         destination: join(process.cwd(), 'uploads', 'receipts'),
         filename: (
           _req: Express.Request,
-          _file: Express.Multer.File,
+          file: Express.Multer.File,
           cb: (error: Error | null, filename: string) => void,
         ) => {
-          cb(null, `${randomUUID()}-${Date.now()}`);
+          const mimeExt: Record<string, string> = {
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/webp': '.webp',
+            'application/pdf': '.pdf',
+          };
+          const ext = extname(file.originalname) || mimeExt[file.mimetype] || '';
+          cb(null, `${randomUUID()}-${Date.now()}${ext}`);
         },
       }),
       limits: { fileSize: 10 * 1024 * 1024 },
