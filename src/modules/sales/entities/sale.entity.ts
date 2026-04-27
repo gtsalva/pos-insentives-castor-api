@@ -38,7 +38,7 @@ export class Sale {
   status: SaleStatus;
 
   @Column({ nullable: true })
-  void_reason: string;
+  void_reason: string | null;
 
   @Column({ nullable: true, length: 100 })
   payment_reference: string | null;
