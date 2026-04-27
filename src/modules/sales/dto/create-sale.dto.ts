@@ -9,6 +9,7 @@ import {
   ArrayMinSize,
   IsOptional,
   IsString,
+  IsUrl,
   MaxLength,
 } from 'class-validator';
 import { PaymentMethod } from '../entities/sale.entity';
@@ -36,6 +37,8 @@ export class CreateSaleDto {
 
   @IsOptional()
   @IsString()
+  @IsUrl({ require_tld: false })
+  @MaxLength(2048)
   payment_document_url?: string;
 
   @IsArray()
