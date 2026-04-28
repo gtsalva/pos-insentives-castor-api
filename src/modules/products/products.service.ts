@@ -100,6 +100,7 @@ export class ProductsService {
   }
 
   async deleteResource(product_id: string, resource_id: string): Promise<void> {
+    await this.findById(product_id);
     const resource = await this.resourceRepo.findOne({
       where: { resource_id, product_id },
     });
@@ -108,15 +109,32 @@ export class ProductsService {
   }
 
   async setDefaultResource(product_id: string, resource_id: string): Promise<ProductResource[]> {
-    const resources = await this.resourceRepo.find({ where: { product_id } });
-    const target = resources.find(r => r.resource_id === resource_id);
-    if (!target) throw new NotFoundException(`Recurso ${resource_id} no encontrado`);
+    await this.findById(product_id);
 
-    const updates = resources.map(r => ({
-      ...r,
-      sort_order: r.resource_id === resource_id ? 0 : r.sort_order + 1,
-    }));
-    await this.resourceRepo.save(updates);
+    const queryRunner = this.resourceRepo.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const resources = await queryRunner.manager.find(ProductResource, { where: { product_id } });
+      const target = resources.find(r => r.resource_id === resource_id);
+      if (!target) throw new NotFoundException(`Recurso ${resource_id} no encontrado`);
+
+      const rest = resources
+        .filter(r => r.resource_id !== resource_id)
+        .sort((a, b) => a.sort_order - b.sort_order);
+
+      const updates = [
+        { ...target, sort_order: 0 },
+        ...rest.map((r, i) => ({ ...r, sort_order: i + 1 })),
+      ];
+      await queryRunner.manager.save(ProductResource, updates);
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
     return this.listResources(product_id);
   }
 }

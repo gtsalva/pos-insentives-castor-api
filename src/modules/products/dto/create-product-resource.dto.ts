@@ -1,10 +1,10 @@
-import { IsEnum, IsString, IsOptional, IsInt, Min } from 'class-validator';
+import { IsEnum, IsString, IsOptional, IsInt, Min, IsUrl } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 export class CreateProductResourceDto {
   @ApiProperty({ example: 'http://localhost:3001/api/storage/products/abc.jpg' })
-  @IsString()
+  @IsUrl({ require_tld: false })
   url: string;
 
   @ApiProperty({ enum: ['image', 'pdf'] })

@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -43,18 +43,21 @@ export class ProductsController {
 
   @Get(':id/resources')
   @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Listar recursos del producto' })
   listResources(@Param('id') id: string) {
     return this.productsService.listResources(id);
   }
 
   @Post(':id/resources')
   @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Agregar recurso al producto' })
   addResource(@Param('id') id: string, @Body() dto: CreateProductResourceDto) {
     return this.productsService.addResource(id, dto);
   }
 
   @Delete(':id/resources/:resourceId')
   @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Eliminar recurso del producto' })
   deleteResource(
     @Param('id') id: string,
     @Param('resourceId') resourceId: string,
@@ -64,6 +67,7 @@ export class ProductsController {
 
   @Patch(':id/resources/:resourceId/set-default')
   @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Establecer recurso como imagen por defecto' })
   setDefaultResource(
     @Param('id') id: string,
     @Param('resourceId') resourceId: string,
