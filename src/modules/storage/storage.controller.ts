@@ -32,8 +32,11 @@ import { Role } from '../../common/enums/role.enum';
 import { ConfigService } from '@nestjs/config';
 
 class UploadResponseDto {
-  @ApiProperty({ example: 'http://localhost:3001/api/storage/vouchers/abc-123.pdf' })
+  @ApiProperty({ example: 'http://localhost:3001/api/storage/products/abc-123.jpg' })
   url: string;
+
+  @ApiProperty({ example: 'image', enum: ['image', 'pdf'], required: false })
+  resource_type?: string;
 }
 
 @ApiTags('storage')
@@ -168,6 +171,77 @@ export class StorageController {
       res.setHeader('Content-Type', this.detectMime(filePath));
     }
 
+    res.sendFile(filePath);
+  }
+
+  @Post('products/upload')
+  @ApiOperation({ summary: 'Subir imagen o PDF de producto' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiResponse({ status: 201, type: UploadResponseDto })
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: join(process.cwd(), 'uploads', 'products'),
+        filename: (
+          _req: Express.Request,
+          file: Express.Multer.File,
+          cb: (error: Error | null, filename: string) => void,
+        ) => {
+          const mimeExt: Record<string, string> = {
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/webp': '.webp',
+            'application/pdf': '.pdf',
+          };
+          const ext = extname(file.originalname) || mimeExt[file.mimetype] || '';
+          cb(null, `${randomUUID()}-${Date.now()}${ext}`);
+        },
+      }),
+      limits: { fileSize: 15 * 1024 * 1024 },
+      fileFilter: (
+        _req: Express.Request,
+        file: Express.Multer.File,
+        cb: (error: Error | null, acceptFile: boolean) => void,
+      ) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        if (!allowed.includes(file.mimetype)) {
+          cb(new BadRequestException('Solo imágenes (JPEG, PNG, WebP) o PDF'), false);
+        } else {
+          cb(null, true);
+        }
+      },
+    }),
+  )
+  uploadProductFile(@UploadedFile() file: Express.Multer.File): UploadResponseDto {
+    if (!file) throw new BadRequestException('No se recibió archivo');
+    const apiUrl = this.config.get<string>('API_URL') ?? 'http://localhost:3001';
+    const resource_type = file.mimetype === 'application/pdf' ? 'pdf' : 'image';
+    return {
+      url: `${apiUrl}/api/storage/products/${file.filename}`,
+      resource_type,
+    };
+  }
+
+  @Get('products/:filename')
+  @ApiOperation({ summary: 'Servir recurso de producto' })
+  @Roles(Role.ADMIN, Role.MANAGER, Role.CASHIER, Role.SALESPERSON)
+  serveProductFile(
+    @Param('filename') filename: string,
+    @Res() res: Response,
+  ): void {
+    const safe = basename(filename);
+    const filePath = join(process.cwd(), 'uploads', 'products', safe);
+    if (!existsSync(filePath)) throw new NotFoundException('Archivo no encontrado');
+    if (!extname(safe)) {
+      res.setHeader('Content-Type', this.detectMime(filePath));
+    }
     res.sendFile(filePath);
   }
 
