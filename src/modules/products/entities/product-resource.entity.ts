@@ -22,7 +22,7 @@ export class ProductResource {
   @JoinColumn({ name: 'product_id' })
   product: Product;
 
-  @Column()
+  @Column({ type: 'varchar', length: 2048 })
   url: string;
 
   @Column({ type: 'varchar', length: 10 })
