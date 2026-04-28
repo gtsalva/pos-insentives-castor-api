@@ -17,11 +17,13 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
+  @Roles(Role.ADMIN, Role.MANAGER, Role.CASHIER, Role.SALESPERSON)
   search(@Query() dto: SearchProductDto) {
     return this.productsService.search(dto);
   }
 
   @Get(':id')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.CASHIER, Role.SALESPERSON)
   findOne(@Param('id') id: string) {
     return this.productsService.findById(id);
   }

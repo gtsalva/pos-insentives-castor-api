@@ -1,3 +1,4 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 import { MovementType } from '../entities/inventory-movement.entity';
 
@@ -16,6 +17,7 @@ export class AdjustStockDto {
   @IsString()
   notes?: string;
 
+  @ApiPropertyOptional({ description: 'UUID del proveedor asociado al movimiento de entrada' })
   @IsOptional()
   @IsUUID()
   supplier_id?: string;
