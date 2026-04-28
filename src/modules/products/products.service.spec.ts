@@ -43,7 +43,7 @@ describe('ProductsService', () => {
     mockRepo.findOne.mockResolvedValue(existing);
     mockRepo.save.mockResolvedValue({ ...existing, cost_price: 1500, min_sale_price: 2000 });
     const result = await service.update('p1', { cost_price: 1500, min_sale_price: 2000 });
-    expect(mockRepo.findOne).toHaveBeenCalledWith({ where: { product_id: 'p1' } });
+    expect(mockRepo.findOne).toHaveBeenCalledWith({ where: { product_id: 'p1', is_active: true } });
     expect(result.cost_price).toBe(1500);
     expect(result.min_sale_price).toBe(2000);
   });

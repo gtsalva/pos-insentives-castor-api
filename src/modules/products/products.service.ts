@@ -60,7 +60,7 @@ export class ProductsService {
   }
 
   async update(product_id: string, dto: UpdateProductDto): Promise<Product> {
-    const product = await this.productRepo.findOne({ where: { product_id } });
+    const product = await this.productRepo.findOne({ where: { product_id, is_active: true } });
     if (!product) throw new NotFoundException(`Producto ${product_id} no encontrado`);
     Object.assign(product, dto);
     return this.productRepo.save(product);
