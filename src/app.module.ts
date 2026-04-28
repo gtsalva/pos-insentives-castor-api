@@ -13,6 +13,8 @@ import { Client } from './modules/clients/entities/client.entity';
 import { Supplier } from './modules/suppliers/entities/supplier.entity';
 import { PurchaseOrder } from './modules/purchases/entities/purchase-order.entity';
 import { PurchaseOrderItem } from './modules/purchases/entities/purchase-order-item.entity';
+import { IncentivePeriod } from './modules/incentives/entities/incentive-period.entity';
+import { IncentiveLiquidation } from './modules/incentives/entities/incentive-liquidation.entity';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
@@ -23,6 +25,7 @@ import { ClientsModule } from './modules/clients/clients.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import { PurchasesModule } from './modules/purchases/purchases.module';
+import { IncentivesModule } from './modules/incentives/incentives.module';
 
 @Module({
   imports: [
@@ -41,6 +44,7 @@ import { PurchasesModule } from './modules/purchases/purchases.module';
           User, Category, Product, ProductResource, Sale, SaleItem,
           InventoryMovement, Client,
           Supplier, PurchaseOrder, PurchaseOrderItem,
+          IncentivePeriod, IncentiveLiquidation,
         ],
         synchronize: false,
         logging: config.get('NODE_ENV') === 'development',
@@ -56,6 +60,7 @@ import { PurchasesModule } from './modules/purchases/purchases.module';
     StorageModule,
     SuppliersModule,
     PurchasesModule,
+    IncentivesModule,
   ],
 })
 export class AppModule {}
