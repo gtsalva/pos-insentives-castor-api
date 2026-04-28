@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Product } from '../../products/entities/product.entity';
 import { User } from '../../users/entities/user.entity';
+import { Supplier } from '../../suppliers/entities/supplier.entity';
 
 export enum MovementType {
   IN = 'IN',
@@ -38,6 +39,13 @@ export class InventoryMovement {
 
   @Column({ nullable: true })
   reference_id: string;
+
+  @Column({ nullable: true })
+  supplier_id: string | null;
+
+  @ManyToOne(() => Supplier, { nullable: true })
+  @JoinColumn({ name: 'supplier_id' })
+  supplier: Supplier | null;
 
   @Column()
   created_by: string;

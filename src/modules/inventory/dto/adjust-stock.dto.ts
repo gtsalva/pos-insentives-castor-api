@@ -15,4 +15,8 @@ export class AdjustStockDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsUUID()
+  supplier_id?: string;
 }

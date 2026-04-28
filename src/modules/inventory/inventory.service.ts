@@ -48,7 +48,7 @@ export class InventoryService {
 
     const [data, total] = await this.movementRepo.findAndCount({
       where: { product_id },
-      relations: ['user'],
+      relations: ['user', 'supplier'],
       order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -82,6 +82,7 @@ export class InventoryService {
         movement_type: dto.movement_type,
         quantity: dto.quantity,
         notes: dto.notes,
+        supplier_id: dto.supplier_id ?? null,
         created_by,
       });
 

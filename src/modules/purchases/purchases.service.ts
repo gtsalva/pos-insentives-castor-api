@@ -153,6 +153,7 @@ export class PurchasesService {
             quantity: receivedItem.quantity_received,
             notes: `Recepción orden ${po.order_number}`,
             reference_id: purchase_order_id,
+            supplier_id: po.supplier_id,
             created_by: received_by,
           }),
         );
