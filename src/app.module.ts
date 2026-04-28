@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './modules/users/entities/user.entity';
 import { Category } from './modules/categories/entities/category.entity';
 import { Product } from './modules/products/entities/product.entity';
+import { ProductResource } from './modules/products/entities/product-resource.entity';
 import { Sale } from './modules/sales/entities/sale.entity';
 import { SaleItem } from './modules/sales/entities/sale-item.entity';
 import { InventoryMovement } from './modules/inventory/entities/inventory-movement.entity';
@@ -37,7 +38,7 @@ import { PurchasesModule } from './modules/purchases/purchases.module';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME', 'pos_castor'),
         entities: [
-          User, Category, Product, Sale, SaleItem,
+          User, Category, Product, ProductResource, Sale, SaleItem,
           InventoryMovement, Client,
           Supplier, PurchaseOrder, PurchaseOrderItem,
         ],
