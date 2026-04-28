@@ -36,6 +36,7 @@ class UploadResponseDto {
   url: string;
 
   @ApiProperty({ example: 'image', enum: ['image', 'pdf'], required: false })
+  // Set by product uploads; absent for voucher uploads
   resource_type?: 'image' | 'pdf';
 }
 
