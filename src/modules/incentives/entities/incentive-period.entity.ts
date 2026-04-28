@@ -1,8 +1,10 @@
 import {
   Entity, PrimaryGeneratedColumn, Column,
   OneToMany, CreateDateColumn, UpdateDateColumn,
+  ManyToOne, JoinColumn,
 } from 'typeorm';
 import { IncentiveLiquidation } from './incentive-liquidation.entity';
+import { User } from '../../users/entities/user.entity';
 
 const numericToFloat = {
   to: (v: number | null) => v,
@@ -34,6 +36,10 @@ export class IncentivePeriod {
 
   @Column({ type: 'varchar', nullable: true })
   created_by_id: string | null;
+
+  @ManyToOne(() => User, { nullable: true, eager: false })
+  @JoinColumn({ name: 'created_by_id' })
+  created_by: User | null;
 
   @OneToMany(() => IncentiveLiquidation, liq => liq.period, { cascade: false })
   liquidations: IncentiveLiquidation[];

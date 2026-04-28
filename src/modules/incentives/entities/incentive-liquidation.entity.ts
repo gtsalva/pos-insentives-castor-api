@@ -18,7 +18,7 @@ export class IncentiveLiquidation {
   @Column()
   period_id: string;
 
-  @ManyToOne(() => IncentivePeriod, p => p.liquidations, { onDelete: 'CASCADE' })
+  @ManyToOne(() => IncentivePeriod, p => p.liquidations)
   @JoinColumn({ name: 'period_id' })
   period: IncentivePeriod;
 
@@ -37,6 +37,10 @@ export class IncentiveLiquidation {
 
   @Column({ type: 'varchar' })
   liquidated_by_id: string;
+
+  @ManyToOne(() => User, { eager: false })
+  @JoinColumn({ name: 'liquidated_by_id' })
+  liquidated_by: User;
 
   @CreateDateColumn()
   created_at: Date;
