@@ -104,7 +104,7 @@ export class PurchasesService {
 
       return manager.findOne(PurchaseOrder, {
         where: { purchase_order_id: savedPo.purchase_order_id },
-        relations: ['supplier', 'items'],
+        relations: ['supplier', 'items', 'ordered_by_user'],
       }) as Promise<PurchaseOrder>;
     });
   }
@@ -114,15 +114,19 @@ export class PurchasesService {
     dto: ReceivePurchaseDto,
     received_by: string,
   ): Promise<PurchaseOrder> {
-    const po = await this.findOne(purchase_order_id);
-
-    if (po.status !== PurchaseStatus.PENDING) {
-      throw new ConflictException(
-        `La orden está en estado ${po.status} y no puede recibirse`,
-      );
-    }
-
     return this.dataSource.transaction(async (manager) => {
+      const po = await manager.findOne(PurchaseOrder, {
+        where: { purchase_order_id },
+        relations: ['items'],
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!po) throw new NotFoundException(`Orden ${purchase_order_id} no encontrada`);
+      if (po.status !== PurchaseStatus.PENDING) {
+        throw new ConflictException(
+          `La orden está en estado ${po.status} y no puede recibirse`,
+        );
+      }
+
       for (const receivedItem of dto.items) {
         const item = po.items.find(
           (i) => i.purchase_item_id === receivedItem.purchase_item_id,
