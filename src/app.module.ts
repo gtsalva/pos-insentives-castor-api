@@ -9,6 +9,9 @@ import { Sale } from './modules/sales/entities/sale.entity';
 import { SaleItem } from './modules/sales/entities/sale-item.entity';
 import { InventoryMovement } from './modules/inventory/entities/inventory-movement.entity';
 import { Client } from './modules/clients/entities/client.entity';
+import { Supplier } from './modules/suppliers/entities/supplier.entity';
+import { PurchaseOrder } from './modules/purchases/entities/purchase-order.entity';
+import { PurchaseOrderItem } from './modules/purchases/entities/purchase-order-item.entity';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
@@ -17,6 +20,8 @@ import { SalesModule } from './modules/sales/sales.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { StorageModule } from './modules/storage/storage.module';
+import { SuppliersModule } from './modules/suppliers/suppliers.module';
+import { PurchasesModule } from './modules/purchases/purchases.module';
 
 @Module({
   imports: [
@@ -31,7 +36,11 @@ import { StorageModule } from './modules/storage/storage.module';
         username: config.get<string>('DB_USER', 'pos_user'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME', 'pos_castor'),
-        entities: [User, Category, Product, Sale, SaleItem, InventoryMovement, Client],
+        entities: [
+          User, Category, Product, Sale, SaleItem,
+          InventoryMovement, Client,
+          Supplier, PurchaseOrder, PurchaseOrderItem,
+        ],
         synchronize: false,
         logging: config.get('NODE_ENV') === 'development',
       }),
@@ -44,6 +53,8 @@ import { StorageModule } from './modules/storage/storage.module';
     InventoryModule,
     ClientsModule,
     StorageModule,
+    SuppliersModule,
+    PurchasesModule,
   ],
 })
 export class AppModule {}
