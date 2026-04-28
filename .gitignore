@@ -29,3 +29,5 @@ uploads/vouchers/*
 !uploads/vouchers/.gitkeep
 
 uploads/receipts/
+uploads/products/*
+!uploads/products/.gitkeep

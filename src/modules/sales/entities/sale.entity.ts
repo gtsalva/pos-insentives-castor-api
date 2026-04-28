@@ -12,6 +12,11 @@ import { User } from '../../users/entities/user.entity';
 import { Client } from '../../clients/entities/client.entity';
 import { SaleItem } from './sale-item.entity';
 
+const numericToFloat = {
+  to: (v: number | null) => v,
+  from: (v: string | null) => (v !== null ? parseFloat(v) : null),
+};
+
 export enum PaymentMethod {
   CASH = 'CASH',
   CARD = 'CARD',
@@ -49,7 +54,7 @@ export class Sale {
   @Column({ type: 'varchar', nullable: true })
   payment_receipt_url: string | null;
 
-  @Column({ type: 'numeric', precision: 10, scale: 2 })
+  @Column({ type: 'numeric', precision: 10, scale: 2, transformer: numericToFloat })
   total: number;
 
   @Column()

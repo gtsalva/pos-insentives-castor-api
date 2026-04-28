@@ -9,6 +9,11 @@ import {
 } from 'typeorm';
 import { Category } from '../../categories/entities/category.entity';
 
+const numericToFloat = {
+  to: (v: number | null) => v,
+  from: (v: string | null) => (v !== null ? parseFloat(v) : null),
+};
+
 @Entity('products')
 export class Product {
   @PrimaryGeneratedColumn('uuid')
@@ -23,13 +28,13 @@ export class Product {
   @Column({ nullable: true })
   description: string;
 
-  @Column({ type: 'numeric', precision: 10, scale: 2 })
+  @Column({ type: 'numeric', precision: 10, scale: 2, transformer: numericToFloat })
   unit_price: number;
 
-  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
+  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true, transformer: numericToFloat })
   cost_price: number | null;
 
-  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
+  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true, transformer: numericToFloat })
   min_sale_price: number | null;
 
   @Column({ type: 'int', default: 0 })

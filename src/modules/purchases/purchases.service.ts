@@ -80,6 +80,8 @@ export class PurchasesService {
           quantity_ordered: item.quantity_ordered,
           unit_cost: item.unit_cost,
           subtotal,
+          min_sale_price: item.min_sale_price ?? null,
+          unit_price: item.unit_price ?? null,
         });
       }
 
@@ -117,7 +119,6 @@ export class PurchasesService {
     return this.dataSource.transaction(async (manager) => {
       const po = await manager.findOne(PurchaseOrder, {
         where: { purchase_order_id },
-        relations: ['items'],
         lock: { mode: 'pessimistic_write' },
       });
       if (!po) throw new NotFoundException(`Orden ${purchase_order_id} no encontrada`);
@@ -126,6 +127,7 @@ export class PurchasesService {
           `La orden está en estado ${po.status} y no puede recibirse`,
         );
       }
+      po.items = await manager.find(PurchaseOrderItem, { where: { purchase_order_id } });
 
       for (const receivedItem of dto.items) {
         const item = po.items.find(
@@ -144,6 +146,13 @@ export class PurchasesService {
           'stock',
           receivedItem.quantity_received,
         );
+
+        if (item.unit_price != null || item.min_sale_price != null) {
+          const priceUpdate: Partial<Product> = { cost_price: item.unit_cost };
+          if (item.unit_price != null)     priceUpdate.unit_price     = item.unit_price;
+          if (item.min_sale_price != null) priceUpdate.min_sale_price = item.min_sale_price;
+          await manager.update(Product, { product_id: item.product_id }, priceUpdate);
+        }
 
         await manager.save(
           InventoryMovement,

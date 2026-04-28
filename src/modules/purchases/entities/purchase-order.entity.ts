@@ -12,6 +12,11 @@ import { User } from '../../users/entities/user.entity';
 import { Supplier } from '../../suppliers/entities/supplier.entity';
 import { PurchaseOrderItem } from './purchase-order-item.entity';
 
+const numericToFloat = {
+  to: (v: number | null) => v,
+  from: (v: string | null) => (v !== null ? parseFloat(v) : null),
+};
+
 export enum PurchaseStatus {
   PENDING   = 'PENDING',
   RECEIVED  = 'RECEIVED',
@@ -36,7 +41,7 @@ export class PurchaseOrder {
   @Column({ type: 'enum', enum: PurchaseStatus, default: PurchaseStatus.PENDING })
   status: PurchaseStatus;
 
-  @Column({ type: 'numeric', precision: 10, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 10, scale: 2, default: 0, transformer: numericToFloat })
   total_cost: number;
 
   @Column({ nullable: true })

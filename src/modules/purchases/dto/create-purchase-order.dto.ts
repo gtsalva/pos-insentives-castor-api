@@ -26,6 +26,18 @@ export class PurchaseItemDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   unit_cost: number;
+
+  @ApiPropertyOptional({ description: 'Actualiza precio mínimo de venta del producto' })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  min_sale_price?: number;
+
+  @ApiPropertyOptional({ description: 'Actualiza precio de venta del producto' })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  unit_price?: number;
 }
 
 export class CreatePurchaseOrderDto {
