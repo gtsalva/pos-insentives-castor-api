@@ -1,15 +1,13 @@
 import {
   Injectable, NotFoundException, ConflictException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { IncentivePeriod } from './entities/incentive-period.entity';
 import { IncentiveLiquidation } from './entities/incentive-liquidation.entity';
+import { IncentivesRepository } from './incentives.repository';
 import { CreatePeriodDto } from './dto/create-period.dto';
 import { UpdatePeriodDto } from './dto/update-period.dto';
 import { PeriodQueryDto } from './dto/period-query.dto';
-import { User } from '../users/entities/user.entity';
-import { Role } from '../../common/enums/role.enum';
 
 export interface SalespersonPerformance {
   salesperson_id: string;
@@ -41,66 +39,40 @@ export interface MyPerformanceResult {
 @Injectable()
 export class IncentivesService {
   constructor(
-    @InjectRepository(IncentivePeriod)
-    private readonly periodRepo: Repository<IncentivePeriod>,
-    @InjectRepository(IncentiveLiquidation)
-    private readonly liquidationRepo: Repository<IncentiveLiquidation>,
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
+    private readonly repo: IncentivesRepository,
+    private readonly dataSource: DataSource,
   ) {}
 
-  async findAll(query: PeriodQueryDto): Promise<IncentivePeriod[]> {
-    const qb = this.periodRepo.createQueryBuilder('p').orderBy('p.start_date', 'DESC');
-    if (query.is_active !== undefined) {
-      qb.where('p.is_active = :is_active', { is_active: query.is_active });
-    }
-    return qb.getMany();
+  findAll(query: PeriodQueryDto): Promise<IncentivePeriod[]> {
+    return this.repo.findAllPeriods(query);
   }
 
   async findOne(period_id: string): Promise<IncentivePeriod> {
-    const period = await this.periodRepo.findOne({ where: { period_id } });
+    const period = await this.repo.findOnePeriod(period_id);
     if (!period) throw new NotFoundException(`Período ${period_id} no encontrado`);
     return period;
   }
 
-  async create(dto: CreatePeriodDto, created_by_id: string): Promise<IncentivePeriod> {
-    const period = this.periodRepo.create({ ...dto, created_by_id });
-    return this.periodRepo.save(period);
+  create(dto: CreatePeriodDto, created_by_id: string): Promise<IncentivePeriod> {
+    return this.repo.createPeriod(dto, created_by_id);
   }
 
   async update(period_id: string, dto: UpdatePeriodDto): Promise<IncentivePeriod> {
     const period = await this.findOne(period_id);
     Object.assign(period, dto);
-    return this.periodRepo.save(period);
+    return this.repo.savePeriod(period);
   }
 
   async getPeriodPerformance(period_id: string): Promise<PeriodPerformanceResult> {
     const period = await this.findOne(period_id);
 
-    const salespeople = await this.userRepo.find({
-      where: [{ role: Role.SALESPERSON }, { role: Role.CASHIER }],
-      select: ['user_id', 'full_name', 'email', 'is_active'],
-    });
-
-    const salesAgg: { salesperson_id: string; total: string; count: string }[] =
-      await this.periodRepo.manager.query(
-        `
-        SELECT s.salesperson_id,
-               COALESCE(SUM(s.total), 0)::text AS total,
-               COUNT(s.sale_id)::text           AS count
-        FROM sales s
-        WHERE s.status = 'COMPLETED'
-          AND DATE(s.created_at) BETWEEN $1 AND $2
-        GROUP BY s.salesperson_id
-        `,
-        [period.start_date, period.end_date],
-      );
+    const [salespeople, salesAgg, liquidations] = await Promise.all([
+      this.repo.findSalespeople(),
+      this.repo.aggregateSalesForPeriod(period.start_date, period.end_date),
+      this.repo.findLiquidationsForPeriod(period_id),
+    ]);
 
     const salesMap = new Map(salesAgg.map(r => [r.salesperson_id, r]));
-
-    const liquidations = await this.liquidationRepo.find({
-      where: { period_id },
-    });
     const liqMap = new Map(liquidations.map(l => [l.salesperson_id, l]));
 
     const performance: SalespersonPerformance[] = salespeople
@@ -133,10 +105,7 @@ export class IncentivesService {
   }
 
   async getMyPerformance(salesperson_id: string): Promise<MyPerformanceResult> {
-    const period = await this.periodRepo.findOne({
-      where: { is_active: true },
-      order: { created_at: 'DESC' },
-    });
+    const period = await this.repo.findActivePeriod();
 
     if (!period) {
       return {
@@ -145,18 +114,10 @@ export class IncentivesService {
       };
     }
 
-    const [agg]: { total: string; count: string }[] =
-      await this.periodRepo.manager.query(
-        `
-        SELECT COALESCE(SUM(s.total), 0)::text AS total,
-               COUNT(s.sale_id)::text           AS count
-        FROM sales s
-        WHERE s.status = 'COMPLETED'
-          AND s.salesperson_id = $1
-          AND DATE(s.created_at) BETWEEN $2 AND $3
-        `,
-        [salesperson_id, period.start_date, period.end_date],
-      );
+    const [[agg], liq] = await Promise.all([
+      this.repo.aggregateMySales(salesperson_id, period.start_date, period.end_date),
+      this.repo.findLiquidation(period.period_id, salesperson_id),
+    ]);
 
     const amount_sold = parseFloat(agg.total);
     const transaction_count = parseInt(agg.count, 10);
@@ -166,10 +127,6 @@ export class IncentivesService {
     const goal_pct = period.goal_amount > 0
       ? parseFloat(((amount_sold / period.goal_amount) * 100).toFixed(1))
       : 0;
-
-    const liq = await this.liquidationRepo.findOne({
-      where: { period_id: period.period_id, salesperson_id },
-    });
 
     return {
       period, amount_sold, transaction_count, commission_earned, goal_pct,
@@ -183,22 +140,26 @@ export class IncentivesService {
     salesperson_id: string,
     liquidated_by_id: string,
   ): Promise<IncentiveLiquidation> {
-    const existing = await this.liquidationRepo.findOne({
-      where: { period_id, salesperson_id },
-    });
-    if (existing) throw new ConflictException('Este vendedor ya fue liquidado para este período');
+    return this.dataSource.transaction(async (manager) => {
+      const existing = await manager.findOne(IncentiveLiquidation, {
+        where: { period_id, salesperson_id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (existing) throw new ConflictException('Este vendedor ya fue liquidado para este período');
 
-    const { performance } = await this.getPeriodPerformance(period_id);
-    const perf = performance.find(p => p.salesperson_id === salesperson_id);
-    if (!perf) throw new NotFoundException(`Vendedor ${salesperson_id} no encontrado en este período`);
+      const { performance } = await this.getPeriodPerformance(period_id);
+      const perf = performance.find(p => p.salesperson_id === salesperson_id);
+      if (!perf) throw new NotFoundException(`Vendedor ${salesperson_id} no encontrado en este período`);
 
-    const liquidation = this.liquidationRepo.create({
-      period_id,
-      salesperson_id,
-      amount_sold: perf.amount_sold,
-      commission_earned: perf.commission_earned,
-      liquidated_by_id,
+      return manager.save(
+        manager.create(IncentiveLiquidation, {
+          period_id,
+          salesperson_id,
+          amount_sold: perf.amount_sold,
+          commission_earned: perf.commission_earned,
+          liquidated_by_id,
+        }),
+      );
     });
-    return this.liquidationRepo.save(liquidation);
   }
 }
