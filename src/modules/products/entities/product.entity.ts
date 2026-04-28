@@ -26,6 +26,12 @@ export class Product {
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   unit_price: number;
 
+  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
+  cost_price: number | null;
+
+  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
+  min_sale_price: number | null;
+
   @Column({ type: 'int', default: 0 })
   stock: number;
 

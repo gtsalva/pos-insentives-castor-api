@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { SearchProductDto } from './dto/search-product.dto';
 
 export interface PaginatedResult<T> {
@@ -56,5 +57,12 @@ export class ProductsService {
   async create(dto: CreateProductDto): Promise<Product> {
     const p = this.productRepo.create(dto);
     return this.productRepo.save(p);
+  }
+
+  async update(product_id: string, dto: UpdateProductDto): Promise<Product> {
+    const product = await this.productRepo.findOne({ where: { product_id } });
+    if (!product) throw new NotFoundException(`Producto ${product_id} no encontrado`);
+    Object.assign(product, dto);
+    return this.productRepo.save(product);
   }
 }

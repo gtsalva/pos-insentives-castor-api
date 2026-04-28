@@ -24,6 +24,20 @@ export class CreateProductDto {
   @Type(() => Number)
   unit_price: number;
 
+  @ApiProperty({ required: false, example: 1800.00, description: 'Precio de costo (compra)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  cost_price?: number;
+
+  @ApiProperty({ required: false, example: 2000.00, description: 'Precio mínimo de venta' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  min_sale_price?: number;
+
   @ApiProperty({ example: 5 })
   @IsNumber()
   @Min(0)

@@ -37,4 +37,14 @@ describe('ProductsService', () => {
     expect(result.data).toHaveLength(1);
     expect(result.total).toBe(1);
   });
+
+  it('update returns updated product with price fields', async () => {
+    const existing = { product_id: 'p1', name: 'Sofá', unit_price: 2500, cost_price: null, min_sale_price: null };
+    mockRepo.findOne.mockResolvedValue(existing);
+    mockRepo.save.mockResolvedValue({ ...existing, cost_price: 1500, min_sale_price: 2000 });
+    const result = await service.update('p1', { cost_price: 1500, min_sale_price: 2000 });
+    expect(mockRepo.findOne).toHaveBeenCalledWith({ where: { product_id: 'p1' } });
+    expect(result.cost_price).toBe(1500);
+    expect(result.min_sale_price).toBe(2000);
+  });
 });
