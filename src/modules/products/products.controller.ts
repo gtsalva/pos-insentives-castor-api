@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { SearchProductDto } from './dto/search-product.dto';
+import { CreateProductResourceDto } from './dto/create-product-resource.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -38,5 +39,35 @@ export class ProductsController {
   @Roles(Role.ADMIN, Role.MANAGER)
   update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
     return this.productsService.update(id, dto);
+  }
+
+  @Get(':id/resources')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  listResources(@Param('id') id: string) {
+    return this.productsService.listResources(id);
+  }
+
+  @Post(':id/resources')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  addResource(@Param('id') id: string, @Body() dto: CreateProductResourceDto) {
+    return this.productsService.addResource(id, dto);
+  }
+
+  @Delete(':id/resources/:resourceId')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  deleteResource(
+    @Param('id') id: string,
+    @Param('resourceId') resourceId: string,
+  ) {
+    return this.productsService.deleteResource(id, resourceId);
+  }
+
+  @Patch(':id/resources/:resourceId/set-default')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  setDefaultResource(
+    @Param('id') id: string,
+    @Param('resourceId') resourceId: string,
+  ) {
+    return this.productsService.setDefaultResource(id, resourceId);
   }
 }

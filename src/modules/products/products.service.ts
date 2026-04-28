@@ -2,9 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
+import { ProductResource } from './entities/product-resource.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { SearchProductDto } from './dto/search-product.dto';
+import { CreateProductResourceDto } from './dto/create-product-resource.dto';
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -18,6 +20,8 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
+    @InjectRepository(ProductResource)
+    private readonly resourceRepo: Repository<ProductResource>,
   ) {}
 
   async search(dto: SearchProductDto): Promise<PaginatedResult<Product>> {
@@ -64,5 +68,55 @@ export class ProductsService {
     if (!product) throw new NotFoundException(`Producto ${product_id} no encontrado`);
     Object.assign(product, dto);
     return this.productRepo.save(product);
+  }
+
+  async listResources(product_id: string): Promise<ProductResource[]> {
+    await this.findById(product_id);
+    return this.resourceRepo.find({
+      where: { product_id },
+      order: { sort_order: 'ASC', created_at: 'ASC' },
+    });
+  }
+
+  async addResource(
+    product_id: string,
+    dto: CreateProductResourceDto,
+  ): Promise<ProductResource> {
+    await this.findById(product_id);
+
+    let sortOrder = dto.sort_order;
+    if (sortOrder === undefined) {
+      const max = await this.resourceRepo.maximum('sort_order', { product_id });
+      sortOrder = max !== null ? (max as number) + 1 : 0;
+    }
+
+    const resource = this.resourceRepo.create({
+      product_id,
+      url: dto.url,
+      resource_type: dto.resource_type,
+      sort_order: sortOrder,
+    });
+    return this.resourceRepo.save(resource);
+  }
+
+  async deleteResource(product_id: string, resource_id: string): Promise<void> {
+    const resource = await this.resourceRepo.findOne({
+      where: { resource_id, product_id },
+    });
+    if (!resource) throw new NotFoundException(`Recurso ${resource_id} no encontrado`);
+    await this.resourceRepo.remove(resource);
+  }
+
+  async setDefaultResource(product_id: string, resource_id: string): Promise<ProductResource[]> {
+    const resources = await this.resourceRepo.find({ where: { product_id } });
+    const target = resources.find(r => r.resource_id === resource_id);
+    if (!target) throw new NotFoundException(`Recurso ${resource_id} no encontrado`);
+
+    const updates = resources.map(r => ({
+      ...r,
+      sort_order: r.resource_id === resource_id ? 0 : r.sort_order + 1,
+    }));
+    await this.resourceRepo.save(updates);
+    return this.listResources(product_id);
   }
 }
