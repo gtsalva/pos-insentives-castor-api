@@ -36,7 +36,7 @@ class UploadResponseDto {
   url: string;
 
   @ApiProperty({ example: 'image', enum: ['image', 'pdf'], required: false })
-  resource_type?: string;
+  resource_type?: 'image' | 'pdf';
 }
 
 @ApiTags('storage')
@@ -129,7 +129,7 @@ export class StorageController {
             'image/webp': '.webp',
             'application/pdf': '.pdf',
           };
-          const ext = extname(file.originalname) || mimeExt[file.mimetype] || '';
+          const ext = mimeExt[file.mimetype] ?? '';
           cb(null, `${randomUUID()}-${Date.now()}${ext}`);
         },
       }),
@@ -200,7 +200,7 @@ export class StorageController {
             'image/webp': '.webp',
             'application/pdf': '.pdf',
           };
-          const ext = extname(file.originalname) || mimeExt[file.mimetype] || '';
+          const ext = mimeExt[file.mimetype] ?? '';
           cb(null, `${randomUUID()}-${Date.now()}${ext}`);
         },
       }),
@@ -222,16 +222,17 @@ export class StorageController {
   uploadProductFile(@UploadedFile() file: Express.Multer.File): UploadResponseDto {
     if (!file) throw new BadRequestException('No se recibió archivo');
     const apiUrl = this.config.get<string>('API_URL') ?? 'http://localhost:3001';
-    const resource_type = file.mimetype === 'application/pdf' ? 'pdf' : 'image';
+    const resourceType: 'image' | 'pdf' = file.mimetype === 'application/pdf' ? 'pdf' : 'image';
     return {
       url: `${apiUrl}/api/storage/products/${file.filename}`,
-      resource_type,
+      resource_type: resourceType,
     };
   }
 
   @Get('products/:filename')
   @ApiOperation({ summary: 'Servir recurso de producto' })
-  @Roles(Role.ADMIN, Role.MANAGER, Role.CASHIER, Role.SALESPERSON)
+  @ApiResponse({ status: 200, description: 'Archivo de producto (imagen o PDF)' })
+  @ApiResponse({ status: 404, description: 'Archivo no encontrado' })
   serveProductFile(
     @Param('filename') filename: string,
     @Res() res: Response,
@@ -239,9 +240,6 @@ export class StorageController {
     const safe = basename(filename);
     const filePath = join(process.cwd(), 'uploads', 'products', safe);
     if (!existsSync(filePath)) throw new NotFoundException('Archivo no encontrado');
-    if (!extname(safe)) {
-      res.setHeader('Content-Type', this.detectMime(filePath));
-    }
     res.sendFile(filePath);
   }
 
