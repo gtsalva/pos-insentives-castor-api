@@ -31,4 +31,15 @@ describe('AuditService', () => {
       expect.objectContaining({ action: 'LOGIN', performed_by_id: 'u1', performed_by_name: 'Test' }),
     );
   });
+
+  it('does not throw when save fails', async () => {
+    mockRepo.create.mockReturnValue({} as AuditLog);
+    mockRepo.save.mockRejectedValue(new Error('DB down'));
+
+    expect(() =>
+      service.log({ action: 'LOGIN', actor: { id: 'u1', name: 'Test' } }),
+    ).not.toThrow();
+
+    await Promise.resolve();
+  });
 });
