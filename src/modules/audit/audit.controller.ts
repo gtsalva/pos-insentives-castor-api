@@ -28,7 +28,10 @@ export class AuditController {
     if (action) qb.andWhere('a.action = :action', { action });
     if (performed_by_id) qb.andWhere('a.performed_by_id = :performed_by_id', { performed_by_id });
     if (entity_type) qb.andWhere('a.entity_type = :entity_type', { entity_type });
-    if (date_from) qb.andWhere('a.created_at >= :date_from', { date_from });
+    if (date_from) {
+      const start = new Date(date_from);
+      qb.andWhere('a.created_at >= :date_from', { date_from: start });
+    }
     if (date_to) {
       const end = new Date(date_to);
       end.setHours(23, 59, 59, 999);
