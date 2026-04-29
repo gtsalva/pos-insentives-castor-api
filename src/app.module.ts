@@ -16,7 +16,10 @@ import { PurchaseOrderItem } from './modules/purchases/entities/purchase-order-i
 import { IncentivePeriod } from './modules/incentives/entities/incentive-period.entity';
 import { IncentiveLiquidation } from './modules/incentives/entities/incentive-liquidation.entity';
 import { AuditLog } from './modules/audit/entities/audit-log.entity';
+import { ShiftClose } from './modules/shifts/entities/shift-close.entity';
+import { Reconciliation } from './modules/shifts/entities/reconciliation.entity';
 import { AuditModule } from './modules/audit/audit.module';
+import { ShiftsModule } from './modules/shifts/shifts.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
@@ -48,7 +51,7 @@ import { ReportsModule } from './modules/reports/reports.module';
           InventoryMovement, Client,
           Supplier, PurchaseOrder, PurchaseOrderItem,
           IncentivePeriod, IncentiveLiquidation,
-          AuditLog,
+          AuditLog, ShiftClose, Reconciliation,
         ],
         synchronize: false,
         logging: config.get('NODE_ENV') === 'development',
@@ -67,6 +70,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     IncentivesModule,
     ReportsModule,
     AuditModule,
+    ShiftsModule,
   ],
 })
 export class AppModule {}
