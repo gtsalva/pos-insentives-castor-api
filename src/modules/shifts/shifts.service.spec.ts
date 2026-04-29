@@ -53,6 +53,9 @@ describe('ShiftsService', () => {
       { id: 'admin-id', name: 'Admin' },
       'ADMIN'
     );
+    expect(shiftCloseRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ salesperson_id: 'other-user-id' }),
+    );
     expect(result.status).toBe(ShiftStatus.CLOSED);
   });
 });

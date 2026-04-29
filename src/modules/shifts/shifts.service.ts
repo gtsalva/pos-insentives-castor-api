@@ -2,13 +2,25 @@ import {
   Injectable, ConflictException, NotFoundException, Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { ShiftClose, ShiftStatus } from './entities/shift-close.entity';
 import { Reconciliation } from './entities/reconciliation.entity';
 import { Sale, SaleStatus, PaymentMethod } from '../sales/entities/sale.entity';
 import { CloseShiftDto } from './dto/close-shift.dto';
 import { CreateReconciliationDto } from './dto/create-reconciliation.dto';
 import { AuditService, AuditActor } from '../audit/audit.service';
+
+interface DailySummaryEntry {
+  salesperson_id: string;
+  salesperson_name: string | null;
+  total_sales: number;
+  transaction_count: number;
+  cash_total: number;
+  card_total: number;
+  transfer_total: number;
+  shift_close: ShiftClose | null;
+  has_reconciliation: boolean;
+}
 
 @Injectable()
 export class ShiftsService {
@@ -35,8 +47,13 @@ export class ShiftsService {
     }
 
     const [start, end] = this.guatemalaDayBounds(today);
-    const allSales = await this.saleRepo.find({ where: { salesperson_id, status: SaleStatus.COMPLETED } });
-    const todaySales = allSales.filter((s) => s.created_at >= start && s.created_at <= end);
+    const todaySales = await this.saleRepo.find({
+      where: {
+        salesperson_id,
+        status: SaleStatus.COMPLETED,
+        created_at: Between(start, end),
+      },
+    });
 
     const totals = { cash: 0, card: 0, transfer: 0, total: 0 };
     for (const s of todaySales) {
@@ -46,6 +63,8 @@ export class ShiftsService {
       else if (s.payment_method === PaymentMethod.TRANSFER) totals.transfer += Number(s.total);
     }
 
+    this.logger.log(`Shift closed for salesperson=${salesperson_id}, date=${today}, total=${totals.total}`);
+
     if (existing && existing.status === ShiftStatus.REOPENED) {
       existing.status = ShiftStatus.CLOSED;
       existing.total_sales = totals.total;
@@ -54,7 +73,7 @@ export class ShiftsService {
       existing.transfer_total = totals.transfer;
       existing.transaction_count = todaySales.length;
       existing.closed_by_id = actor.id;
-      if (dto.notes) existing.notes = dto.notes;
+      existing.notes = dto.notes ?? existing.notes;
       const saved = await this.shiftCloseRepo.save(existing);
       this.auditService.log({ action: 'SHIFT_CLOSED', entity_type: 'ShiftClose', entity_id: saved.shift_close_id, actor, metadata: { salesperson_id, shift_date: today, total_sales: totals.total } });
       return saved;
@@ -103,7 +122,7 @@ export class ShiftsService {
     });
   }
 
-  async dailySummary(date?: string) {
+  async dailySummary(date?: string): Promise<{ date: string; entries: DailySummaryEntry[] }> {
     const shift_date = date ?? this.guatemalaToday();
     const [start, end] = this.guatemalaDayBounds(shift_date);
 
@@ -130,7 +149,7 @@ export class ShiftsService {
     const aggMap = new Map(salesAgg.map((a) => [a.salesperson_id, a]));
     const allIds = new Set([...closeMap.keys(), ...aggMap.keys()]);
 
-    const entries = [];
+    const entries: DailySummaryEntry[] = [];
     for (const salesperson_id of allIds) {
       const agg = aggMap.get(salesperson_id);
       const sc = closeMap.get(salesperson_id);
