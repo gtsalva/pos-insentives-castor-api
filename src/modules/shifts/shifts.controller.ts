@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ShiftsService } from './shifts.service';
 import { CloseShiftDto } from './dto/close-shift.dto';
@@ -38,14 +38,14 @@ export class ShiftsController {
 
   @Post(':id/reopen')
   @Roles(Role.ADMIN, Role.MANAGER)
-  reopen(@Param('id') id: string, @Body() dto: ReopenShiftDto, @CurrentUser() user: JwtPayload) {
+  reopen(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReopenShiftDto, @CurrentUser() user: JwtPayload) {
     return this.shiftsService.reopen(id, { id: user.sub, name: user.name }, dto.notes);
   }
 
   @Post(':id/reconciliation')
   @Roles(Role.ADMIN, Role.MANAGER)
   createReconciliation(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateReconciliationDto,
     @CurrentUser() user: JwtPayload,
   ) {
@@ -54,7 +54,7 @@ export class ShiftsController {
 
   @Get(':id/reconciliation')
   @Roles(Role.ADMIN, Role.MANAGER)
-  getReconciliation(@Param('id') id: string) {
+  getReconciliation(@Param('id', ParseUUIDPipe) id: string) {
     return this.shiftsService.getReconciliation(id);
   }
 }
