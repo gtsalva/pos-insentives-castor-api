@@ -26,6 +26,7 @@ import { StorageModule } from './modules/storage/storage.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import { PurchasesModule } from './modules/purchases/purchases.module';
 import { IncentivesModule } from './modules/incentives/incentives.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { IncentivesModule } from './modules/incentives/incentives.module';
     SuppliersModule,
     PurchasesModule,
     IncentivesModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}
