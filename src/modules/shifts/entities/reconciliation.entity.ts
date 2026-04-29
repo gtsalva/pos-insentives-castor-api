@@ -11,8 +11,8 @@ import { User } from '../../users/entities/user.entity';
 import { ShiftClose } from './shift-close.entity';
 
 const numericToFloat = {
-  from: (v: string | null) => (v !== null ? parseFloat(v) : 0),
   to: (v: number | null) => v,
+  from: (v: string | null) => (v !== null ? parseFloat(v) : null),
 };
 
 @Entity('reconciliations')
