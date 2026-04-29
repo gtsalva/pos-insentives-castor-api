@@ -13,6 +13,7 @@ import { InventoryMovement, MovementType } from '../inventory/entities/inventory
 import { SuppliersService } from '../suppliers/suppliers.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { PurchaseQueryDto } from './dto/purchase-query.dto';
+import { AuditService, AuditActor } from '../audit/audit.service';
 import { ReceivePurchaseDto } from './dto/receive-purchase.dto';
 import { PaginatedResult } from '../products/products.service';
 
@@ -27,6 +28,7 @@ export class PurchasesService {
     private readonly productRepo: Repository<Product>,
     private readonly suppliersService: SuppliersService,
     private readonly dataSource: DataSource,
+    private readonly auditService: AuditService,
   ) {}
 
   async findAll(dto: PurchaseQueryDto): Promise<PaginatedResult<PurchaseOrder>> {
@@ -57,7 +59,8 @@ export class PurchasesService {
     return po;
   }
 
-  async create(dto: CreatePurchaseOrderDto, ordered_by: string): Promise<PurchaseOrder> {
+  async create(dto: CreatePurchaseOrderDto, actor: AuditActor): Promise<PurchaseOrder> {
+    const ordered_by = actor.id;
     await this.suppliersService.findOne(dto.supplier_id);
 
     return this.dataSource.transaction(async (manager) => {
@@ -108,14 +111,18 @@ export class PurchasesService {
         where: { purchase_order_id: savedPo.purchase_order_id },
         relations: ['supplier', 'items', 'ordered_by_user'],
       }) as Promise<PurchaseOrder>;
+    }).then((po) => {
+      this.auditService.log({ action: 'PURCHASE_CREATED', entity_type: 'PurchaseOrder', entity_id: po.purchase_order_id, actor, metadata: { order_number: po.order_number, supplier_id: dto.supplier_id, total_cost: po.total_cost } });
+      return po;
     });
   }
 
   async receive(
     purchase_order_id: string,
     dto: ReceivePurchaseDto,
-    received_by: string,
+    actor: AuditActor,
   ): Promise<PurchaseOrder> {
+    const received_by = actor.id;
     return this.dataSource.transaction(async (manager) => {
       const po = await manager.findOne(PurchaseOrder, {
         where: { purchase_order_id },
@@ -182,12 +189,16 @@ export class PurchasesService {
         where: { purchase_order_id },
         relations: ['supplier', 'items', 'ordered_by_user', 'received_by_user'],
       }) as Promise<PurchaseOrder>;
+    }).then((po) => {
+      this.auditService.log({ action: 'PURCHASE_RECEIVED', entity_type: 'PurchaseOrder', entity_id: po.purchase_order_id, actor, metadata: { order_number: po.order_number, supplier_id: po.supplier_id } });
+      return po;
     });
   }
 
   async cancel(
     purchase_order_id: string,
     cancellation_reason: string,
+    actor: AuditActor,
   ): Promise<PurchaseOrder> {
     const po = await this.findOne(purchase_order_id);
     if (po.status !== PurchaseStatus.PENDING) {
@@ -199,6 +210,7 @@ export class PurchasesService {
       status: PurchaseStatus.CANCELLED,
       cancellation_reason,
     });
+    this.auditService.log({ action: 'PURCHASE_CANCELLED', entity_type: 'PurchaseOrder', entity_id: purchase_order_id, actor, metadata: { order_number: po.order_number, cancellation_reason } });
     return this.findOne(purchase_order_id);
   }
 

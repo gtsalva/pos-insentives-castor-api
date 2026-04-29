@@ -7,6 +7,8 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 
 @ApiTags('categories')
 @ApiBearerAuth()
@@ -30,13 +32,13 @@ export class CategoriesController {
 
   @Post()
   @Roles(Role.ADMIN, Role.MANAGER)
-  create(@Body() dto: CreateCategoryDto) {
-    return this.categoriesService.create(dto);
+  create(@Body() dto: CreateCategoryDto, @CurrentUser() user: JwtPayload) {
+    return this.categoriesService.create(dto, { id: user.sub, name: user.name });
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN, Role.MANAGER)
-  update(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
-    return this.categoriesService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateCategoryDto, @CurrentUser() user: JwtPayload) {
+    return this.categoriesService.update(id, dto, { id: user.sub, name: user.name });
   }
 }

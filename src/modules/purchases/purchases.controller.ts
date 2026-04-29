@@ -20,6 +20,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../common/enums/role.enum';
+import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 
 class CancelPurchaseDto {
   @ApiProperty()
@@ -49,22 +50,26 @@ export class PurchasesController {
   @Post()
   create(
     @Body() dto: CreatePurchaseOrderDto,
-    @CurrentUser('sub') ordered_by: string,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.purchasesService.create(dto, ordered_by);
+    return this.purchasesService.create(dto, { id: user.sub, name: user.name });
   }
 
   @Patch(':id/receive')
   receive(
     @Param('id') id: string,
     @Body() dto: ReceivePurchaseDto,
-    @CurrentUser('sub') received_by: string,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.purchasesService.receive(id, dto, received_by);
+    return this.purchasesService.receive(id, dto, { id: user.sub, name: user.name });
   }
 
   @Patch(':id/cancel')
-  cancel(@Param('id') id: string, @Body() dto: CancelPurchaseDto) {
-    return this.purchasesService.cancel(id, dto.cancellation_reason);
+  cancel(
+    @Param('id') id: string,
+    @Body() dto: CancelPurchaseDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.purchasesService.cancel(id, dto.cancellation_reason, { id: user.sub, name: user.name });
   }
 }
