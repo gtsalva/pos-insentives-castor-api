@@ -4,6 +4,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { Role } from '../../common/enums/role.enum';
+import { AuditService } from '../audit/audit.service';
 
 const USER_SELECT = ['user_id', 'email', 'full_name', 'role', 'is_active', 'created_at'];
 
@@ -35,6 +36,7 @@ describe('UsersService', () => {
       providers: [
         UsersService,
         { provide: getRepositoryToken(User), useValue: mockRepo },
+        { provide: AuditService, useValue: { log: jest.fn() } },
       ],
     }).compile();
     service = module.get(UsersService);

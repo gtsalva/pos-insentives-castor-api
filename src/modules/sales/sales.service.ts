@@ -16,6 +16,9 @@ import { GetSalesDto } from './dto/get-sales.dto';
 import { PaginatedResult } from '../products/products.service';
 import { AuditService } from '../audit/audit.service';
 
+// Guatemala timezone: UTC-6, no daylight saving time
+const GUATEMALA_UTC_OFFSET_HOURS = 6;
+
 @Injectable()
 export class SalesService {
   constructor(
@@ -32,7 +35,7 @@ export class SalesService {
   ) {}
 
   async create(dto: CreateSaleDto, salesperson_id: string, salesperson_name: string): Promise<Sale> {
-    const today = new Date(Date.now() - 6 * 3600 * 1000).toISOString().slice(0, 10);
+    const today = new Date(Date.now() - GUATEMALA_UTC_OFFSET_HOURS * 3600 * 1000).toISOString().slice(0, 10);
     const blocked = await this.shiftCloseRepo.findOne({
       where: { salesperson_id, shift_date: today, status: ShiftStatus.CLOSED },
       select: ['shift_close_id'],

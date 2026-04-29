@@ -37,8 +37,8 @@ export class UsersController {
 
   @Patch(':id/status')
   @Roles(Role.ADMIN)
-  toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
-    return this.usersService.toggleStatus(id);
+  toggleStatus(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
+    return this.usersService.toggleStatus(id, { id: user.sub, name: user.name });
   }
 
   @Patch(':id')

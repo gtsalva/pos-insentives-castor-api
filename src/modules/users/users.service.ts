@@ -83,10 +83,22 @@ export class UsersService {
     return updated;
   }
 
-  async toggleStatus(user_id: string): Promise<User> {
-    const user = await this.findById(user_id);
-    if (!user) throw new NotFoundException(`Usuario ${user_id} no encontrado`);
-    await this.userRepo.update(user_id, { is_active: !user.is_active });
-    return (await this.userRepo.findOne({ where: { user_id }, select: USER_SELECT }))!;
+  async toggleStatus(user_id: string, actor?: AuditActor): Promise<User> {
+    const currentUser = await this.findById(user_id);
+    if (!currentUser) throw new NotFoundException(`Usuario ${user_id} no encontrado`);
+    await this.userRepo.update(user_id, { is_active: !currentUser.is_active });
+    const updated = (await this.userRepo.findOne({ where: { user_id }, select: USER_SELECT }))!;
+
+    if (actor) {
+      this.auditService.log({
+        action: 'USER_STATUS_CHANGED',
+        entity_type: 'User',
+        entity_id: user_id,
+        actor,
+        metadata: { active: !currentUser.is_active },
+      });
+    }
+
+    return updated;
   }
 }
