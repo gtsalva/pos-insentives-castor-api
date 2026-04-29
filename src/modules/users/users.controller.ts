@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -21,6 +21,12 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  @Get(':id')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.usersService.findById(id);
+  }
+
   @Post()
   @Roles(Role.ADMIN)
   create(@Body() dto: CreateUserDto) {
@@ -29,13 +35,13 @@ export class UsersController {
 
   @Patch(':id/status')
   @Roles(Role.ADMIN)
-  toggleStatus(@Param('id') id: string) {
+  toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.toggleStatus(id);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN)
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateUserDto) {
     return this.usersService.update(id, dto);
   }
 }
