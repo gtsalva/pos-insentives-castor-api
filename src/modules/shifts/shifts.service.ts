@@ -10,7 +10,7 @@ import { CloseShiftDto } from './dto/close-shift.dto';
 import { CreateReconciliationDto } from './dto/create-reconciliation.dto';
 import { AuditService, AuditActor } from '../audit/audit.service';
 
-interface DailySummaryEntry {
+export interface DailySummaryEntry {
   salesperson_id: string;
   salesperson_name: string | null;
   total_sales: number;
