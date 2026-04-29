@@ -10,6 +10,7 @@ import { Product } from '../products/entities/product.entity';
 import { AdjustStockDto } from './dto/adjust-stock.dto';
 import { GetInventoryDto } from './dto/get-inventory.dto';
 import { PaginatedResult } from '../products/products.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class InventoryService {
@@ -19,6 +20,7 @@ export class InventoryService {
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
     private readonly dataSource: DataSource,
+    private readonly auditService: AuditService,
   ) {}
 
   async getAll(dto: GetInventoryDto): Promise<PaginatedResult<Product>> {
@@ -57,8 +59,8 @@ export class InventoryService {
     return { data, total, page, limit };
   }
 
-  async adjust(dto: AdjustStockDto, created_by: string): Promise<InventoryMovement> {
-    return this.dataSource.transaction(async (manager) => {
+  async adjust(dto: AdjustStockDto, created_by: string, created_by_name: string): Promise<InventoryMovement> {
+    const movement = await this.dataSource.transaction(async (manager) => {
       const product = await manager.findOne(Product, {
         where: { product_id: dto.product_id, is_active: true },
       });
@@ -77,7 +79,7 @@ export class InventoryService {
         await manager.update(Product, { product_id: dto.product_id }, { stock: dto.quantity });
       }
 
-      const movement = manager.create(InventoryMovement, {
+      const newMovement = manager.create(InventoryMovement, {
         product_id: dto.product_id,
         movement_type: dto.movement_type,
         quantity: dto.quantity,
@@ -86,7 +88,17 @@ export class InventoryService {
         created_by,
       });
 
-      return manager.save(InventoryMovement, movement);
+      return manager.save(InventoryMovement, newMovement);
     });
+
+    this.auditService.log({
+      action: 'INVENTORY_ADJUSTED',
+      entity_type: 'InventoryMovement',
+      entity_id: movement.movement_id,
+      actor: { id: created_by, name: created_by_name },
+      metadata: { product_id: dto.product_id, movement_type: dto.movement_type, quantity: dto.quantity },
+    });
+
+    return movement;
   }
 }

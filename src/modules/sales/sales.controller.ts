@@ -31,9 +31,9 @@ export class SalesController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.CASHIER, Role.SALESPERSON)
   create(
     @Body() dto: CreateSaleDto,
-    @CurrentUser('sub') salesperson_id: string,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.salesService.create(dto, salesperson_id);
+    return this.salesService.create(dto, user.sub, user.name);
   }
 
   @Get()
@@ -59,7 +59,11 @@ export class SalesController {
 
   @Patch(':id/void')
   @Roles(Role.ADMIN, Role.MANAGER)
-  voidSale(@Param('id') id: string, @Body() dto: VoidSaleDto) {
-    return this.salesService.voidSale(id, dto);
+  voidSale(
+    @Param('id') id: string,
+    @Body() dto: VoidSaleDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.salesService.voidSale(id, dto, { id: user.sub, name: user.name });
   }
 }

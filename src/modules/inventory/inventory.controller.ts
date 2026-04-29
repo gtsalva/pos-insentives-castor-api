@@ -8,6 +8,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../common/enums/role.enum';
+import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 
 @ApiTags('inventory')
 @ApiBearerAuth()
@@ -36,8 +37,8 @@ export class InventoryController {
   @Roles(Role.ADMIN, Role.MANAGER)
   adjust(
     @Body() dto: AdjustStockDto,
-    @CurrentUser('sub') created_by: string,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.inventoryService.adjust(dto, created_by);
+    return this.inventoryService.adjust(dto, user.sub, user.name);
   }
 }

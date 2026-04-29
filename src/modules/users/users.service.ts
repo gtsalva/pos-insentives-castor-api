@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AuditService, AuditActor } from '../audit/audit.service';
 
 const USER_SELECT: (keyof User)[] = [
   'user_id', 'email', 'full_name', 'role', 'is_active', 'created_at',
@@ -15,6 +16,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly auditService: AuditService,
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
@@ -37,17 +39,28 @@ export class UsersService {
     return this.userRepo.find({ select: USER_SELECT });
   }
 
-  async create(dto: CreateUserDto): Promise<User> {
+  async create(dto: CreateUserDto, actor?: AuditActor): Promise<User> {
     const existing = await this.findByEmail(dto.email);
     if (existing) throw new ConflictException('El correo ya está registrado');
     const password_hash = await bcrypt.hash(dto.password, 10);
     const user = this.userRepo.create({ ...dto, password_hash });
     const saved = await this.userRepo.save(user);
     const { password_hash: _, ...result } = saved;
+
+    if (actor) {
+      this.auditService.log({
+        action: 'USER_CREATED',
+        entity_type: 'User',
+        entity_id: saved.user_id,
+        actor,
+        metadata: { email: dto.email, role: dto.role },
+      });
+    }
+
     return result as User;
   }
 
-  async update(user_id: string, dto: UpdateUserDto): Promise<User> {
+  async update(user_id: string, dto: UpdateUserDto, actor?: AuditActor): Promise<User> {
     const user = await this.findById(user_id);
     if (!user) throw new NotFoundException(`Usuario ${user_id} no encontrado`);
     if (dto.email && dto.email !== user.email) {
@@ -55,7 +68,19 @@ export class UsersService {
       if (existing) throw new ConflictException('El correo ya está registrado');
     }
     await this.userRepo.update(user_id, dto);
-    return (await this.userRepo.findOne({ where: { user_id }, select: USER_SELECT }))!;
+    const updated = (await this.userRepo.findOne({ where: { user_id }, select: USER_SELECT }))!;
+
+    if (actor) {
+      this.auditService.log({
+        action: 'USER_UPDATED',
+        entity_type: 'User',
+        entity_id: user_id,
+        actor,
+        metadata: { changes: dto as Record<string, unknown> },
+      });
+    }
+
+    return updated;
   }
 
   async toggleStatus(user_id: string): Promise<User> {

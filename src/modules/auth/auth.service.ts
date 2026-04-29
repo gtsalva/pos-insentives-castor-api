@@ -5,12 +5,14 @@ import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { AuthResponse } from './interfaces/auth-response.interface';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly auditService: AuditService,
   ) {}
 
   async login(dto: LoginDto): Promise<AuthResponse> {
@@ -21,7 +23,7 @@ export class AuthService {
     if (!valid) throw new UnauthorizedException('Credenciales inválidas');
 
     const payload: JwtPayload = { sub: user.user_id, email: user.email, role: user.role, name: user.full_name };
-    return {
+    const response: AuthResponse = {
       access_token: this.jwtService.sign(payload),
       user: {
         user_id: user.user_id,
@@ -30,5 +32,15 @@ export class AuthService {
         role: user.role,
       },
     };
+
+    this.auditService.log({
+      action: 'LOGIN',
+      entity_type: 'User',
+      entity_id: user.user_id,
+      actor: { id: user.user_id, name: user.full_name },
+      metadata: { email: user.email, role: user.role },
+    });
+
+    return response;
   }
 }
