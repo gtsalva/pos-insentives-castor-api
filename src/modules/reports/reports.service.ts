@@ -83,7 +83,7 @@ export class ReportsService {
       .addSelect('SUM(si.quantity)', 'units_sold')
       .addSelect('SUM(si.subtotal)', 'total_revenue')
       .innerJoin(Sale, 's', 's.sale_id = si.sale_id')
-      .innerJoin(Product, 'p', 'p.product_id = si.product_id')
+      .innerJoin(Product, 'p', 'p.product_id::text = si.product_id')
       .leftJoin('categories', 'c', 'c.category_id = p.category_id')
       .where('s.status = :status', { status: SaleStatus.COMPLETED })
       .andWhere('s.created_at >= :dateFrom', { dateFrom })
@@ -142,7 +142,7 @@ export class ReportsService {
         'margin_amount',
       )
       .innerJoin(Sale, 's', 's.sale_id = si.sale_id')
-      .innerJoin(Product, 'p', 'p.product_id = si.product_id')
+      .innerJoin(Product, 'p', 'p.product_id::text = si.product_id')
       .leftJoin('categories', 'c', 'c.category_id = p.category_id')
       .where('s.status = :status', { status: SaleStatus.COMPLETED })
       .andWhere('s.created_at >= :dateFrom', { dateFrom })
@@ -205,7 +205,7 @@ export class ReportsService {
     if (filters.salesperson_id) trendQb.andWhere('s.salesperson_id = :spId', { spId: filters.salesperson_id });
     const trendRows = await trendQb
       .groupBy(truncFn)
-      .orderBy('period', 'ASC')
+      .orderBy(truncFn, 'ASC')
       .getRawMany();
 
     // By payment method
@@ -228,7 +228,7 @@ export class ReportsService {
       .addSelect('SUM(si.subtotal)', 'revenue')
       .addSelect('SUM(si.quantity)', 'units_sold')
       .innerJoin(Sale, 's', 's.sale_id = si.sale_id')
-      .innerJoin(Product, 'p', 'p.product_id = si.product_id')
+      .innerJoin(Product, 'p', 'p.product_id::text = si.product_id')
       .leftJoin('categories', 'c', 'c.category_id = p.category_id')
       .where('s.status = :status', { status: SaleStatus.COMPLETED })
       .andWhere('s.created_at >= :dateFrom', { dateFrom })
