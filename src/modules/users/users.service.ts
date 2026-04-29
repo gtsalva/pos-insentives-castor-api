@@ -1,9 +1,14 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+
+const USER_SELECT: (keyof User)[] = [
+  'user_id', 'email', 'full_name', 'role', 'is_active', 'created_at',
+];
 
 @Injectable()
 export class UsersService {
@@ -28,6 +33,10 @@ export class UsersService {
     return this.userRepo.findOne({ where: { user_id } });
   }
 
+  async findAll(): Promise<User[]> {
+    return this.userRepo.find({ select: USER_SELECT });
+  }
+
   async create(dto: CreateUserDto): Promise<User> {
     const existing = await this.findByEmail(dto.email);
     if (existing) throw new ConflictException('El correo ya está registrado');
@@ -38,7 +47,21 @@ export class UsersService {
     return result as User;
   }
 
-  async findAll(): Promise<User[]> {
-    return this.userRepo.find({ select: ['user_id', 'email', 'full_name', 'role', 'is_active', 'created_at'] });
+  async update(user_id: string, dto: UpdateUserDto): Promise<User> {
+    const user = await this.findById(user_id);
+    if (!user) throw new NotFoundException(`Usuario ${user_id} no encontrado`);
+    if (dto.email && dto.email !== user.email) {
+      const existing = await this.findByEmail(dto.email);
+      if (existing) throw new ConflictException('El correo ya está registrado');
+    }
+    await this.userRepo.update(user_id, dto);
+    return (await this.userRepo.findOne({ where: { user_id }, select: USER_SELECT }))!;
+  }
+
+  async toggleStatus(user_id: string): Promise<User> {
+    const user = await this.findById(user_id);
+    if (!user) throw new NotFoundException(`Usuario ${user_id} no encontrado`);
+    await this.userRepo.update(user_id, { is_active: !user.is_active });
+    return (await this.userRepo.findOne({ where: { user_id }, select: USER_SELECT }))!;
   }
 }
