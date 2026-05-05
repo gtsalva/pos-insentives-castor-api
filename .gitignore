@@ -31,3 +31,6 @@ uploads/vouchers/*
 uploads/receipts/
 uploads/products/*
 !uploads/products/.gitkeep
+
+# Claude-generated docs
+/manual
