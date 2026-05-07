@@ -2,7 +2,7 @@ import {
   Injectable, ConflictException, NotFoundException, Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, DataSource, Repository } from 'typeorm';
 import { ShiftClose, ShiftStatus } from './entities/shift-close.entity';
 import { Reconciliation } from './entities/reconciliation.entity';
 import { Sale, SaleStatus, PaymentMethod } from '../sales/entities/sale.entity';
@@ -34,6 +34,7 @@ export class ShiftsService {
     @InjectRepository(Sale)
     private readonly saleRepo: Repository<Sale>,
     private readonly auditService: AuditService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async close(dto: CloseShiftDto, actor: AuditActor, actorRole: string): Promise<ShiftClose> {
@@ -140,6 +141,8 @@ export class ShiftsService {
       .groupBy('s.salesperson_id')
       .getRawMany<{ salesperson_id: string; total_sales: string; transaction_count: string; cash_total: string; card_total: string; transfer_total: string }>();
 
+    const coPaymentsAgg = await this.customOrderPaymentsAgg(start, end);
+
     const shiftCloses = await this.shiftCloseRepo.find({
       where: { shift_date },
       relations: ['salesperson', 'reconciliation'],
@@ -147,20 +150,34 @@ export class ShiftsService {
 
     const closeMap = new Map(shiftCloses.map((sc) => [sc.salesperson_id, sc]));
     const aggMap = new Map(salesAgg.map((a) => [a.salesperson_id, a]));
-    const allIds = new Set([...closeMap.keys(), ...aggMap.keys()]);
+    const coMap = new Map(coPaymentsAgg.map((c) => [c.salesperson_id, c]));
+    const allIds = new Set([...closeMap.keys(), ...aggMap.keys(), ...coMap.keys()]);
 
     const entries: DailySummaryEntry[] = [];
     for (const salesperson_id of allIds) {
       const agg = aggMap.get(salesperson_id);
+      const co = coMap.get(salesperson_id);
       const sc = closeMap.get(salesperson_id);
+
+      const salesTotal = agg ? parseFloat(agg.total_sales) : 0;
+      const coTotal = co ? parseFloat(co.total) : 0;
+      const salesCount = agg ? parseInt(agg.transaction_count) : 0;
+      const coCount = co ? parseInt(co.transaction_count) : 0;
+      const salesCash = agg ? parseFloat(agg.cash_total) : 0;
+      const coCash = co ? parseFloat(co.cash) : 0;
+      const salesCard = agg ? parseFloat(agg.card_total) : 0;
+      const coCard = co ? parseFloat(co.card) : 0;
+      const salesTransfer = agg ? parseFloat(agg.transfer_total) : 0;
+      const coTransfer = co ? parseFloat(co.transfer) : 0;
+
       entries.push({
         salesperson_id,
         salesperson_name: sc?.salesperson?.full_name ?? null,
-        total_sales: agg ? parseFloat(agg.total_sales) : 0,
-        transaction_count: agg ? parseInt(agg.transaction_count) : 0,
-        cash_total: agg ? parseFloat(agg.cash_total) : 0,
-        card_total: agg ? parseFloat(agg.card_total) : 0,
-        transfer_total: agg ? parseFloat(agg.transfer_total) : 0,
+        total_sales: salesTotal + coTotal,
+        transaction_count: salesCount + coCount,
+        cash_total: salesCash + coCash,
+        card_total: salesCard + coCard,
+        transfer_total: salesTransfer + coTransfer,
         shift_close: sc ?? null,
         has_reconciliation: !!sc?.reconciliation,
       });
@@ -208,6 +225,26 @@ export class ShiftsService {
       select: ['shift_close_id'],
     });
     return sc !== null;
+  }
+
+  private async customOrderPaymentsAgg(start: Date, end: Date): Promise<
+    { salesperson_id: string; total: string; transaction_count: string; cash: string; card: string; transfer: string }[]
+  > {
+    return this.dataSource.query(
+      `
+      SELECT co.salesperson_id,
+             SUM(cop.amount)::text                                                               AS total,
+             COUNT(cop.custom_order_payment_id)::text                                            AS transaction_count,
+             SUM(CASE WHEN cop.payment_method = 'CASH'                    THEN cop.amount ELSE 0 END)::text AS cash,
+             SUM(CASE WHEN cop.payment_method IN ('CARD','VISACUOTAS')    THEN cop.amount ELSE 0 END)::text AS card,
+             SUM(CASE WHEN cop.payment_method = 'TRANSFER'                THEN cop.amount ELSE 0 END)::text AS transfer
+      FROM custom_order_payments cop
+      JOIN custom_orders co ON co.custom_order_id = cop.custom_order_id
+      WHERE cop.created_at >= $1 AND cop.created_at <= $2
+      GROUP BY co.salesperson_id
+      `,
+      [start, end],
+    );
   }
 
   private guatemalaToday(): string {

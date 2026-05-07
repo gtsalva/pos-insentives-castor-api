@@ -61,13 +61,23 @@ export class IncentivesRepository {
   ): Promise<{ salesperson_id: string; total: string; count: string }[]> {
     return this.dataSource.query(
       `
-      SELECT s.salesperson_id,
-             COALESCE(SUM(s.total), 0)::text AS total,
-             COUNT(s.sale_id)::text           AS count
-      FROM sales s
-      WHERE s.status = 'COMPLETED'
-        AND DATE(s.created_at) BETWEEN $1 AND $2
-      GROUP BY s.salesperson_id
+      SELECT salesperson_id,
+             SUM(total)::text AS total,
+             COUNT(*)::text   AS count
+      FROM (
+        SELECT s.salesperson_id, s.total
+        FROM sales s
+        WHERE s.status = 'COMPLETED'
+          AND DATE(s.created_at) BETWEEN $1 AND $2
+
+        UNION ALL
+
+        SELECT co.salesperson_id, cop.amount AS total
+        FROM custom_order_payments cop
+        JOIN custom_orders co ON co.custom_order_id = cop.custom_order_id
+        WHERE DATE(cop.created_at) BETWEEN $1 AND $2
+      ) combined
+      GROUP BY salesperson_id
       `,
       [start_date, end_date],
     );
@@ -80,12 +90,22 @@ export class IncentivesRepository {
   ): Promise<{ total: string; count: string }[]> {
     return this.dataSource.query(
       `
-      SELECT COALESCE(SUM(s.total), 0)::text AS total,
-             COUNT(s.sale_id)::text           AS count
-      FROM sales s
-      WHERE s.status = 'COMPLETED'
-        AND s.salesperson_id = $1
-        AND DATE(s.created_at) BETWEEN $2 AND $3
+      SELECT SUM(total)::text AS total, COUNT(*)::text AS count
+      FROM (
+        SELECT s.total
+        FROM sales s
+        WHERE s.status = 'COMPLETED'
+          AND s.salesperson_id = $1
+          AND DATE(s.created_at) BETWEEN $2 AND $3
+
+        UNION ALL
+
+        SELECT cop.amount AS total
+        FROM custom_order_payments cop
+        JOIN custom_orders co ON co.custom_order_id = cop.custom_order_id
+        WHERE co.salesperson_id = $1
+          AND DATE(cop.created_at) BETWEEN $2 AND $3
+      ) combined
       `,
       [salesperson_id, start_date, end_date],
     );
