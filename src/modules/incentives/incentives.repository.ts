@@ -76,6 +76,7 @@ export class IncentivesRepository {
         FROM custom_order_payments cop
         JOIN custom_orders co ON co.custom_order_id = cop.custom_order_id
         WHERE DATE(cop.created_at) BETWEEN $1 AND $2
+          AND co.counts_for_incentive = true
       ) combined
       GROUP BY salesperson_id
       `,
@@ -105,6 +106,7 @@ export class IncentivesRepository {
         JOIN custom_orders co ON co.custom_order_id = cop.custom_order_id
         WHERE co.salesperson_id = $1
           AND DATE(cop.created_at) BETWEEN $2 AND $3
+          AND co.counts_for_incentive = true
       ) combined
       `,
       [salesperson_id, start_date, end_date],

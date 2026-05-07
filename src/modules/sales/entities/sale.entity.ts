@@ -11,17 +11,15 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Client } from '../../clients/entities/client.entity';
 import { SaleItem } from './sale-item.entity';
+import { SalePayment } from './sale-payment.entity';
+import { PaymentMethod } from './payment-method.enum';
+
+export { PaymentMethod } from './payment-method.enum';
 
 const numericToFloat = {
   to: (v: number | null) => v,
   from: (v: string | null) => (v !== null ? parseFloat(v) : null),
 };
-
-export enum PaymentMethod {
-  CASH = 'CASH',
-  CARD = 'CARD',
-  TRANSFER = 'TRANSFER',
-}
 
 export enum SaleStatus {
   COMPLETED = 'COMPLETED',
@@ -73,6 +71,9 @@ export class Sale {
 
   @OneToMany(() => SaleItem, (item) => item.sale, { cascade: true })
   items: SaleItem[];
+
+  @OneToMany(() => SalePayment, (p) => p.sale, { cascade: true })
+  payments: SalePayment[];
 
   @CreateDateColumn()
   created_at: Date;

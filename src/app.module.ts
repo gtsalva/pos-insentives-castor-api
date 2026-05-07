@@ -19,9 +19,10 @@ import { IncentiveLiquidation } from './modules/incentives/entities/incentive-li
 import { AuditLog } from './modules/audit/entities/audit-log.entity';
 import { ShiftClose } from './modules/shifts/entities/shift-close.entity';
 import { Reconciliation } from './modules/shifts/entities/reconciliation.entity';
-import { CustomOrder } from './modules/custom-orders/entities/custom-order.entity';
-import { CustomOrderItem } from './modules/custom-orders/entities/custom-order-item.entity';
-import { CustomOrderPayment } from './modules/custom-orders/entities/custom-order-payment.entity';
+import { CustomOrder }                   from './modules/custom-orders/entities/custom-order.entity';
+import { CustomOrderItem }              from './modules/custom-orders/entities/custom-order-item.entity';
+import { CustomOrderPayment }           from './modules/custom-orders/entities/custom-order-payment.entity';
+import { CustomOrderCommissionPayment } from './modules/custom-orders/entities/custom-order-commission-payment.entity';
 import { AuditModule } from './modules/audit/audit.module';
 import { CustomOrdersModule } from './modules/custom-orders/custom-orders.module';
 import { ShiftsModule } from './modules/shifts/shifts.module';
@@ -57,7 +58,7 @@ import { ReportsModule } from './modules/reports/reports.module';
           Supplier, PurchaseOrder, PurchaseOrderItem,
           IncentivePeriod, IncentiveLiquidation,
           AuditLog, ShiftClose, Reconciliation,
-          CustomOrder, CustomOrderItem, CustomOrderPayment,
+          CustomOrder, CustomOrderItem, CustomOrderPayment, CustomOrderCommissionPayment,
         ],
         synchronize: false,
         logging: config.get('NODE_ENV') === 'development',

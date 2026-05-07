@@ -11,6 +11,7 @@ import {
   IsString,
   IsUrl,
   MaxLength,
+  IsNumber,
 } from 'class-validator';
 import { PaymentMethod } from '../entities/sale.entity';
 
@@ -21,19 +22,36 @@ export class CreateSaleItemDto {
   @IsInt()
   @Min(1)
   quantity: number;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  unit_price?: number;
 }
 
-export class CreateSaleDto {
+export class CreateSalePaymentDto {
   @IsEnum(PaymentMethod)
   payment_method: PaymentMethod;
 
-  @IsUUID()
-  client_id: string;
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  amount: number;
 
   @IsOptional()
   @IsString()
   @MaxLength(100)
   payment_reference?: string;
+}
+
+export class CreateSaleDto {
+  @IsUUID()
+  client_id: string;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreateSalePaymentDto)
+  payments: CreateSalePaymentDto[];
 
   @IsOptional()
   @IsString()

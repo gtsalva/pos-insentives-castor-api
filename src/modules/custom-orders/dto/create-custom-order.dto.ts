@@ -4,6 +4,8 @@ import {
   IsOptional,
   IsUUID,
   IsNumber,
+  IsDateString,
+  IsBoolean,
   Min,
   IsArray,
   ValidateNested,
@@ -13,6 +15,10 @@ import {
 } from 'class-validator';
 
 export class CreateCustomOrderItemDto {
+  @IsOptional()
+  @IsUUID()
+  category_id?: string;
+
   @IsString()
   @MaxLength(300)
   description: string;
@@ -68,6 +74,19 @@ export class CreateCustomOrderDto {
   @IsOptional()
   @IsUUID()
   supplier_id?: string;
+
+  @IsOptional()
+  @IsDateString()
+  delivery_date?: string;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  agreed_price?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  counts_for_incentive?: boolean;
 
   @IsArray()
   @ArrayMinSize(1)

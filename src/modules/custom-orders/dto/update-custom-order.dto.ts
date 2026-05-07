@@ -11,6 +11,7 @@ import {
   MaxLength,
   IsEmail,
   IsDateString,
+  IsBoolean,
 } from 'class-validator';
 import { CreateCustomOrderItemDto } from './create-custom-order.dto';
 
@@ -50,6 +51,15 @@ export class UpdateCustomOrderDto {
   @IsOptional()
   @IsDateString()
   delivery_date?: string;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  custom_commission?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  counts_for_incentive?: boolean;
 
   @IsOptional()
   @IsArray()

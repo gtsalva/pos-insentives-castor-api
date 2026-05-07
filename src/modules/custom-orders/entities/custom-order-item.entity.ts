@@ -12,6 +12,7 @@ export class CustomOrderItem {
   @JoinColumn({ name: 'custom_order_id' })
   custom_order: CustomOrder;
 
+  @Column({ type: 'uuid', nullable: true })                                             category_id: string | null;
   @Column({ length: 300 })                                                              description: string;
   @Column({ type: 'numeric', precision: 10, scale: 2, transformer: n2f })              quantity:    number;
   @Column({ type: 'numeric', precision: 12, scale: 2, transformer: n2f })              unit_price:  number;

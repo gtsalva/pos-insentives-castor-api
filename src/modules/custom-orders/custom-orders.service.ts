@@ -3,14 +3,16 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { CustomOrder }        from './entities/custom-order.entity';
-import { CustomOrderItem }    from './entities/custom-order-item.entity';
-import { CustomOrderPayment } from './entities/custom-order-payment.entity';
-import { CustomOrderStatus }  from './entities/custom-order-status.enum';
-import { CreateCustomOrderDto }  from './dto/create-custom-order.dto';
-import { UpdateCustomOrderDto }  from './dto/update-custom-order.dto';
-import { RegisterPaymentDto }    from './dto/register-payment.dto';
-import { CustomOrderQueryDto }   from './dto/custom-order-query.dto';
+import { CustomOrder }                    from './entities/custom-order.entity';
+import { CustomOrderItem }               from './entities/custom-order-item.entity';
+import { CustomOrderPayment }            from './entities/custom-order-payment.entity';
+import { CustomOrderCommissionPayment }  from './entities/custom-order-commission-payment.entity';
+import { CustomOrderStatus }             from './entities/custom-order-status.enum';
+import { CreateCustomOrderDto }          from './dto/create-custom-order.dto';
+import { UpdateCustomOrderDto }          from './dto/update-custom-order.dto';
+import { RegisterPaymentDto }            from './dto/register-payment.dto';
+import { RegisterCommissionPaymentDto }  from './dto/register-commission-payment.dto';
+import { CustomOrderQueryDto }           from './dto/custom-order-query.dto';
 import { AuditService, AuditActor } from '../audit/audit.service';
 
 export interface PaginatedResult<T> { data: T[]; total: number; page: number; limit: number; }
@@ -20,9 +22,10 @@ const EDITABLE_STATUSES = [CustomOrderStatus.DRAFT, CustomOrderStatus.SENT];
 @Injectable()
 export class CustomOrdersService {
   constructor(
-    @InjectRepository(CustomOrder)        private readonly orderRepo:   Repository<CustomOrder>,
-    @InjectRepository(CustomOrderItem)    private readonly itemRepo:    Repository<CustomOrderItem>,
-    @InjectRepository(CustomOrderPayment) private readonly paymentRepo: Repository<CustomOrderPayment>,
+    @InjectRepository(CustomOrder)                   private readonly orderRepo:            Repository<CustomOrder>,
+    @InjectRepository(CustomOrderItem)               private readonly itemRepo:             Repository<CustomOrderItem>,
+    @InjectRepository(CustomOrderPayment)            private readonly paymentRepo:          Repository<CustomOrderPayment>,
+    @InjectRepository(CustomOrderCommissionPayment)  private readonly commissionPaymentRepo: Repository<CustomOrderCommissionPayment>,
     private readonly dataSource: DataSource,
     private readonly auditService: AuditService,
   ) {}
@@ -47,7 +50,7 @@ export class CustomOrdersService {
   async findOne(custom_order_id: string): Promise<CustomOrder> {
     const order = await this.orderRepo.findOne({
       where: { custom_order_id },
-      relations: ['salesperson', 'client', 'supplier', 'items', 'payments', 'payments.received_by'],
+      relations: ['salesperson', 'client', 'supplier', 'items', 'payments', 'payments.received_by', 'commission_payments', 'commission_payments.paid_by'],
     });
     if (!order) throw new NotFoundException(`Cotización ${custom_order_id} no encontrada`);
     return order;
@@ -65,16 +68,20 @@ export class CustomOrdersService {
         client_name:    dto.client_name  ?? null,
         client_phone:   dto.client_phone ?? null,
         client_email:   dto.client_email ?? null,
-        notes:          dto.notes        ?? null,
-        client_notes:   dto.client_notes ?? null,
-        supplier_id:    dto.supplier_id  ?? null,
-        total:          Math.round(total * 100) / 100,
-        total_paid:     0,
+        notes:                dto.notes                ?? null,
+        client_notes:         dto.client_notes         ?? null,
+        supplier_id:          dto.supplier_id          ?? null,
+        delivery_date:        dto.delivery_date        ?? null,
+        agreed_price:         dto.agreed_price         != null ? Math.round(dto.agreed_price * 100) / 100 : null,
+        counts_for_incentive: dto.counts_for_incentive ?? true,
+        total:                Math.round(total * 100) / 100,
+        total_paid:           0,
       });
       const saved = await manager.save(CustomOrder, order);
 
       const items = dto.items.map(i => manager.create(CustomOrderItem, {
         custom_order_id: saved.custom_order_id,
+        category_id:     i.category_id ?? null,
         description:     i.description,
         quantity:        i.quantity,
         unit_price:      i.unit_price,
@@ -120,14 +127,16 @@ export class CustomOrdersService {
       }
 
       Object.assign(order, {
-        client_id:     dto.client_id     ?? order.client_id,
-        client_name:   dto.client_name   ?? order.client_name,
-        client_phone:  dto.client_phone  ?? order.client_phone,
-        client_email:  dto.client_email  ?? order.client_email,
-        notes:         dto.notes         !== undefined ? dto.notes        : order.notes,
-        client_notes:  dto.client_notes  !== undefined ? dto.client_notes : order.client_notes,
-        supplier_id:   dto.supplier_id   ?? order.supplier_id,
-        delivery_date: dto.delivery_date ?? order.delivery_date,
+        client_id:           dto.client_id           ?? order.client_id,
+        client_name:         dto.client_name         ?? order.client_name,
+        client_phone:        dto.client_phone        ?? order.client_phone,
+        client_email:        dto.client_email        ?? order.client_email,
+        notes:               dto.notes               !== undefined ? dto.notes               : order.notes,
+        client_notes:        dto.client_notes        !== undefined ? dto.client_notes        : order.client_notes,
+        supplier_id:         dto.supplier_id         ?? order.supplier_id,
+        delivery_date:       dto.delivery_date       ?? order.delivery_date,
+        counts_for_incentive: dto.counts_for_incentive !== undefined ? dto.counts_for_incentive : order.counts_for_incentive,
+        custom_commission:   dto.custom_commission   !== undefined ? (dto.custom_commission ?? null) : order.custom_commission,
       });
 
       await manager.save(CustomOrder, order);
@@ -179,29 +188,27 @@ export class CustomOrdersService {
       throw new BadRequestException('No se pueden registrar pagos en una orden cancelada');
     }
 
+    const targetTotal  = order.agreed_price ?? order.total;
     const newTotalPaid = Math.round((order.total_paid + dto.amount) * 100) / 100;
-    if (newTotalPaid > order.total + 0.01) {
+    if (newTotalPaid > targetTotal + 0.01) {
       throw new BadRequestException(
-        `El pago de Q ${dto.amount.toFixed(2)} excede el saldo pendiente de Q ${(order.total - order.total_paid).toFixed(2)}`
+        `El pago de Q ${dto.amount.toFixed(2)} excede el saldo pendiente de Q ${(targetTotal - order.total_paid).toFixed(2)}`
       );
     }
 
-    await this.dataSource.transaction(async (manager) => {
-      const payment = manager.create(CustomOrderPayment, {
-        custom_order_id,
-        payment_method:    dto.payment_method,
-        amount:            dto.amount,
-        payment_reference: dto.payment_reference ?? null,
-        received_by_id:    actor.id,
-        notes:             dto.notes ?? null,
-      });
-      await manager.save(CustomOrderPayment, payment);
+    const newStatus =
+      newTotalPaid >= targetTotal - 0.01 && order.status === CustomOrderStatus.DELIVERED
+        ? CustomOrderStatus.COMPLETED
+        : order.status;
 
-      order.total_paid = newTotalPaid;
-      if (newTotalPaid >= order.total - 0.01 && order.status === CustomOrderStatus.DELIVERED) {
-        order.status = CustomOrderStatus.COMPLETED;
-      }
-      await manager.save(CustomOrder, order);
+    await this.dataSource.transaction(async (manager) => {
+      await manager.query(
+        `INSERT INTO custom_order_payments
+           (custom_order_id, payment_method, amount, payment_reference, received_by_id, notes)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [custom_order_id, dto.payment_method, dto.amount, dto.payment_reference ?? null, actor.id, dto.notes ?? null],
+      );
+      await manager.update(CustomOrder, { custom_order_id }, { total_paid: newTotalPaid, status: newStatus });
     });
 
     this.auditService.log({
@@ -226,6 +233,21 @@ export class CustomOrdersService {
     this.auditService.log({
       action: 'CUSTOM_ORDER_DELIVERY_DATE_CHANGED', entity_type: 'CustomOrder',
       entity_id: custom_order_id, actor, metadata: { order_number: order.order_number, delivery_date },
+    });
+    return this.findOne(custom_order_id);
+  }
+
+  async registerCommissionPayment(custom_order_id: string, dto: RegisterCommissionPaymentDto, actor: AuditActor): Promise<CustomOrder> {
+    await this.findOne(custom_order_id);
+    await this.dataSource.query(
+      `INSERT INTO custom_order_commission_payments
+         (custom_order_id, amount, notes, paid_by_id)
+       VALUES ($1, $2, $3, $4)`,
+      [custom_order_id, dto.amount, dto.notes ?? null, actor.id],
+    );
+    this.auditService.log({
+      action: 'CUSTOM_ORDER_COMMISSION_PAID', entity_type: 'CustomOrder',
+      entity_id: custom_order_id, actor, metadata: { amount: dto.amount },
     });
     return this.findOne(custom_order_id);
   }

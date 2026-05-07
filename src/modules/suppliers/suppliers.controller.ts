@@ -20,22 +20,24 @@ import { Role } from '../../common/enums/role.enum';
 @ApiTags('suppliers')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN, Role.MANAGER)
 @Controller('suppliers')
 export class SuppliersController {
   constructor(private readonly suppliersService: SuppliersService) {}
 
   @Get()
+  @Roles(Role.ADMIN, Role.MANAGER, Role.SALESPERSON, Role.CASHIER)
   findAll(@Query() dto: SupplierQueryDto) {
     return this.suppliersService.findAll(dto);
   }
 
   @Get(':id')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.SALESPERSON, Role.CASHIER)
   findOne(@Param('id') id: string) {
     return this.suppliersService.findOne(id);
   }
 
   @Post()
+  @Roles(Role.ADMIN, Role.MANAGER, Role.SALESPERSON, Role.CASHIER)
   create(@Body() dto: CreateSupplierDto) {
     return this.suppliersService.create(dto);
   }

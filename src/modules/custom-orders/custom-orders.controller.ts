@@ -13,7 +13,8 @@ import { CustomOrdersService } from './custom-orders.service';
 import { CreateCustomOrderDto }  from './dto/create-custom-order.dto';
 import { UpdateCustomOrderDto }  from './dto/update-custom-order.dto';
 import { ApproveCustomOrderDto } from './dto/approve-custom-order.dto';
-import { RegisterPaymentDto }    from './dto/register-payment.dto';
+import { RegisterPaymentDto }           from './dto/register-payment.dto';
+import { RegisterCommissionPaymentDto } from './dto/register-commission-payment.dto';
 import { CustomOrderQueryDto }   from './dto/custom-order-query.dto';
 import { CustomOrderStatus }     from './entities/custom-order-status.enum';
 
@@ -94,6 +95,16 @@ export class CustomOrdersController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.service.registerPayment(id, dto, { id: user.sub, name: user.name });
+  }
+
+  @Post(':id/commission-payments')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  registerCommissionPayment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RegisterCommissionPaymentDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.registerCommissionPayment(id, dto, { id: user.sub, name: user.name });
   }
 
   @Patch(':id/delivery-date')

@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Sale, SaleStatus } from './entities/sale.entity';
 import { SaleItem } from './entities/sale-item.entity';
+import { SalePayment } from './entities/sale-payment.entity';
 import { Product } from '../products/entities/product.entity';
 import { ShiftClose, ShiftStatus } from '../shifts/entities/shift-close.entity';
 import { CreateSaleDto } from './dto/create-sale.dto';
@@ -30,6 +31,8 @@ export class SalesService {
     private readonly productRepo: Repository<Product>,
     @InjectRepository(ShiftClose)
     private readonly shiftCloseRepo: Repository<ShiftClose>,
+    @InjectRepository(SalePayment)
+    private readonly salePaymentRepo: Repository<SalePayment>,
     private readonly dataSource: DataSource,
     private readonly auditService: AuditService,
   ) {}
@@ -61,7 +64,20 @@ export class SalesService {
           );
         }
 
-        const subtotal = Number(product.unit_price) * item.quantity;
+        let unit_price = Number(product.unit_price);
+        if (item.unit_price !== undefined) {
+          if (
+            product.min_sale_price !== null &&
+            item.unit_price < Number(product.min_sale_price)
+          ) {
+            throw new BadRequestException(
+              `El precio de venta (Q ${item.unit_price.toFixed(2)}) es menor al precio mínimo permitido (Q ${Number(product.min_sale_price).toFixed(2)}) para ${product.name}`,
+            );
+          }
+          unit_price = item.unit_price;
+        }
+
+        const subtotal = unit_price * item.quantity;
         total += subtotal;
 
         saleItems.push({
@@ -69,7 +85,7 @@ export class SalesService {
           product_sku: product.sku,
           product_name: product.name,
           quantity: item.quantity,
-          unit_price: Number(product.unit_price),
+          unit_price,
           subtotal,
         });
 
@@ -81,14 +97,27 @@ export class SalesService {
         );
       }
 
+      // Validate that payment amounts sum to the computed sale total (within 1 cent)
+      const paidTotal = dto.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+      if (Math.abs(paidTotal - total) > 0.01) {
+        throw new BadRequestException(
+          `El total de los pagos (Q ${paidTotal.toFixed(2)}) no coincide con el total de la venta (Q ${total.toFixed(2)})`,
+        );
+      }
+
+      // Dominant payment = largest amount (used for backward-compat Sale.payment_method)
+      const dominant = dto.payments.reduce((a, b) =>
+        Number(a.amount) >= Number(b.amount) ? a : b,
+      );
+
       const sale_number = await this.generateSaleNumber(manager);
 
       const newSale = manager.create(Sale, {
         sale_number,
-        payment_method: dto.payment_method,
+        payment_method: dominant.payment_method,
         salesperson_id,
         client_id: dto.client_id,
-        payment_reference: dto.payment_reference ?? null,
+        payment_reference: dominant.payment_reference ?? null,
         payment_document_url: dto.payment_document_url ?? null,
         payment_receipt_url: dto.payment_receipt_url ?? null,
         total,
@@ -102,9 +131,19 @@ export class SalesService {
       );
       await manager.save(SaleItem, items);
 
+      const payments = dto.payments.map((p) =>
+        manager.create(SalePayment, {
+          sale_id: savedSale.sale_id,
+          payment_method: p.payment_method,
+          amount: Number(p.amount),
+          payment_reference: p.payment_reference ?? null,
+        }),
+      );
+      await manager.save(SalePayment, payments);
+
       return manager.findOne(Sale, {
         where: { sale_id: savedSale.sale_id },
-        relations: ['items', 'salesperson', 'client'],
+        relations: ['items', 'salesperson', 'client', 'payments'],
       }) as Promise<Sale>;
     });
 
