@@ -8,6 +8,7 @@ import { Product } from './modules/products/entities/product.entity';
 import { ProductResource } from './modules/products/entities/product-resource.entity';
 import { Sale } from './modules/sales/entities/sale.entity';
 import { SaleItem } from './modules/sales/entities/sale-item.entity';
+import { SalePayment } from './modules/sales/entities/sale-payment.entity';
 import { InventoryMovement } from './modules/inventory/entities/inventory-movement.entity';
 import { Client } from './modules/clients/entities/client.entity';
 import { Supplier } from './modules/suppliers/entities/supplier.entity';
@@ -18,7 +19,11 @@ import { IncentiveLiquidation } from './modules/incentives/entities/incentive-li
 import { AuditLog } from './modules/audit/entities/audit-log.entity';
 import { ShiftClose } from './modules/shifts/entities/shift-close.entity';
 import { Reconciliation } from './modules/shifts/entities/reconciliation.entity';
+import { CustomOrder } from './modules/custom-orders/entities/custom-order.entity';
+import { CustomOrderItem } from './modules/custom-orders/entities/custom-order-item.entity';
+import { CustomOrderPayment } from './modules/custom-orders/entities/custom-order-payment.entity';
 import { AuditModule } from './modules/audit/audit.module';
+import { CustomOrdersModule } from './modules/custom-orders/custom-orders.module';
 import { ShiftsModule } from './modules/shifts/shifts.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -47,11 +52,12 @@ import { ReportsModule } from './modules/reports/reports.module';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME', 'pos_castor'),
         entities: [
-          User, Category, Product, ProductResource, Sale, SaleItem,
+          User, Category, Product, ProductResource, Sale, SaleItem, SalePayment,
           InventoryMovement, Client,
           Supplier, PurchaseOrder, PurchaseOrderItem,
           IncentivePeriod, IncentiveLiquidation,
           AuditLog, ShiftClose, Reconciliation,
+          CustomOrder, CustomOrderItem, CustomOrderPayment,
         ],
         synchronize: false,
         logging: config.get('NODE_ENV') === 'development',
@@ -71,6 +77,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     ReportsModule,
     AuditModule,
     ShiftsModule,
+    CustomOrdersModule,
   ],
 })
 export class AppModule {}
