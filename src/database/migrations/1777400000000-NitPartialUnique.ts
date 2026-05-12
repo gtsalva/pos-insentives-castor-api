@@ -7,7 +7,7 @@ export class NitPartialUnique1777400000000 implements MigrationInterface {
 
     // Partial unique index: enforce uniqueness only for real NITs (not CF, not null)
     await queryRunner.query(`
-      CREATE UNIQUE INDEX "UQ_clients_nit_real"
+      CREATE UNIQUE INDEX IF NOT EXISTS "UQ_clients_nit_real"
       ON clients (nit)
       WHERE nit IS NOT NULL AND UPPER(nit) != 'CF'
     `);
