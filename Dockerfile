@@ -1,22 +1,26 @@
-FROM node:20-alpine AS base
+FROM node:20-alpine AS deps
+
 WORKDIR /app
+
 COPY package*.json ./
 
-FROM base AS development
 RUN npm ci --legacy-peer-deps
-COPY . .
-EXPOSE 3000
-CMD ["npm", "run", "start:dev"]
 
-FROM base AS build
-RUN npm ci --legacy-peer-deps
+FROM deps AS builder
+
 COPY . .
+
 RUN npm run build
 
-FROM node:20-alpine AS production
+FROM node:20-alpine AS runner
+
 WORKDIR /app
+ENV NODE_ENV=production
+
 COPY package*.json ./
-RUN npm ci --omit=dev
-COPY --from=build /app/dist ./dist
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+
 EXPOSE 3000
+
 CMD ["node", "dist/main"]

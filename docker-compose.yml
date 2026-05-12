@@ -1,26 +1,39 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: pos_castor_db
-    restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-pos_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-pos_password_segura}
       POSTGRES_DB: ${DB_NAME:-pos_castor}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   pos-api:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: pos_api
-    restart: unless-stopped
-    env_file: .env
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run start:dev
     ports:
-      - "3001:3000"
+      - "3001:3001"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-pos_user}
+      - DB_PASSWORD=${DB_PASSWORD:-pos_password_segura}
+      - DB_NAME=${DB_NAME:-pos_castor}
+      - JWT_SECRET=${JWT_SECRET:-cambia_esto_min_32_chars_secreto}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-8h}
+      - API_PORT=3001
+      - NODE_ENV=development
+      - CORS_ORIGIN_CAJA=${CORS_ORIGIN_CAJA:-http://localhost:4200}
+      - CORS_ORIGIN_ADMIN=${CORS_ORIGIN_ADMIN:-http://localhost:4201}
     depends_on:
       - postgres
 

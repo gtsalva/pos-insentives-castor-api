@@ -46,6 +46,11 @@ async function bootstrap() {
     SwaggerModule.createDocument(app, swaggerConfig),
   );
 
+  // health check for Railway — bypasses global interceptors
+  app.getHttpAdapter().get('/api/health', (_req, res) => {
+    res.status(200).json({ status: 'ok' });
+  });
+
   await app.listen(config.get<number>('API_PORT') ?? 3000);
 }
 
