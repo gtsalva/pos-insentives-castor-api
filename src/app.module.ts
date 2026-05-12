@@ -60,6 +60,8 @@ import { ReportsModule } from './modules/reports/reports.module';
           AuditLog, ShiftClose, Reconciliation,
           CustomOrder, CustomOrderItem, CustomOrderPayment, CustomOrderCommissionPayment,
         ],
+        migrations: ['dist/database/migrations/*.js'],
+        migrationsRun: true,
         synchronize: false,
         logging: config.get('NODE_ENV') === 'development',
       }),
