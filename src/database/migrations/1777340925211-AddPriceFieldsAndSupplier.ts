@@ -10,7 +10,7 @@ export class AddPriceFieldsAndSupplier1777340925211 implements MigrationInterfac
         await queryRunner.query(`ALTER TABLE "sales" DROP CONSTRAINT "FK_sales_client"`);
         await queryRunner.query(`ALTER TABLE "inventory_movements" DROP CONSTRAINT "FK_inv_movements_product"`);
         await queryRunner.query(`ALTER TABLE "inventory_movements" DROP CONSTRAINT "FK_inv_movements_user"`);
-        await queryRunner.query(`DROP INDEX IF EXISTS "public"."UQ_clients_nit"`);
+        await queryRunner.query(`ALTER TABLE "clients" DROP CONSTRAINT IF EXISTS "UQ_clients_nit"`);
         await queryRunner.query(`CREATE TABLE "suppliers" ("supplier_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying(150) NOT NULL, "contact_name" character varying(100), "phone" character varying(30), "email" character varying(100), "address" character varying, "notes" character varying, "is_active" boolean NOT NULL DEFAULT true, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_a2692f796d16e0a30040860112a" PRIMARY KEY ("supplier_id"))`);
         await queryRunner.query(`CREATE TABLE "purchase_order_items" ("purchase_item_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "purchase_order_id" uuid NOT NULL, "product_id" character varying NOT NULL, "product_sku" character varying(50) NOT NULL, "product_name" character varying(150) NOT NULL, "quantity_ordered" integer NOT NULL, "quantity_received" integer, "unit_cost" numeric(10,2) NOT NULL, "subtotal" numeric(10,2) NOT NULL, CONSTRAINT "PK_16b495043939cb05b75279b8bf8" PRIMARY KEY ("purchase_item_id"))`);
         await queryRunner.query(`CREATE TYPE "public"."purchase_orders_status_enum" AS ENUM('PENDING', 'RECEIVED', 'CANCELLED')`);
