@@ -24,11 +24,13 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
 
+  const corsOrigins = [
+    ...config.get<string>('CORS_ORIGINS_CAJA', '').split(','),
+    ...config.get<string>('CORS_ORIGINS_ADMIN', '').split(','),
+  ].map(o => o.trim()).filter(Boolean);
+
   app.enableCors({
-    origin: [
-      config.get<string>('CORS_ORIGIN_CAJA')!,
-      config.get<string>('CORS_ORIGIN_ADMIN')!,
-    ],
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
