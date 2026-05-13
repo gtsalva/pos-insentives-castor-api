@@ -3,6 +3,8 @@ import * as bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+const isProd = __filename.endsWith('.js');
+
 const AppDataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST ?? 'localhost',
@@ -11,7 +13,7 @@ const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD ?? 'pos_password_segura',
   database: process.env.DB_NAME ?? 'pos_castor',
   synchronize: false,
-  entities: ['src/**/*.entity.ts'],
+  entities: isProd ? ['dist/**/*.entity.js'] : ['src/**/*.entity.ts'],
 });
 
 async function seed(): Promise<void> {
