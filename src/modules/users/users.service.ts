@@ -1,10 +1,11 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuditService, AuditActor } from '../audit/audit.service';
 
 const USER_SELECT: (keyof User)[] = [
@@ -81,6 +82,19 @@ export class UsersService {
     }
 
     return updated;
+  }
+
+  async changePassword(user_id: string, dto: ChangePasswordDto): Promise<void> {
+    const user = await this.userRepo
+      .createQueryBuilder('u')
+      .addSelect('u.password_hash')
+      .where('u.user_id = :user_id', { user_id })
+      .getOne();
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    const valid = await bcrypt.compare(dto.current_password, user.password_hash);
+    if (!valid) throw new BadRequestException('La contraseña actual es incorrecta');
+    const password_hash = await bcrypt.hash(dto.new_password, 10);
+    await this.userRepo.update(user_id, { password_hash });
   }
 
   async toggleStatus(user_id: string, actor?: AuditActor): Promise<User> {
