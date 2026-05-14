@@ -38,6 +38,9 @@ export class Client {
   @Column({ type: 'varchar', nullable: true, length: 100 })
   billing_department: string | null;
 
+  @Column({ type: 'text', nullable: true })
+  photo_url: string | null;
+
   @Column({ default: true })
   is_active: boolean;
 

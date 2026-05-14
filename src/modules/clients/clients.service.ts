@@ -58,6 +58,11 @@ export class ClientsService {
     return this.repo.update(client_id, dto);
   }
 
+  async updatePhoto(client_id: string, photo_url: string | null): Promise<Client> {
+    await this.findOne(client_id);
+    return this.repo.update(client_id, { photo_url } as UpdateClientDto);
+  }
+
   async deactivate(client_id: string): Promise<void> {
     await this.findOne(client_id);
     return this.repo.deactivate(client_id);

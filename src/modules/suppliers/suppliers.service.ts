@@ -51,4 +51,10 @@ export class SuppliersService {
     Object.assign(supplier, dto);
     return this.supplierRepo.save(supplier);
   }
+
+  async updatePhoto(supplier_id: string, photo_url: string | null): Promise<Supplier> {
+    await this.findOne(supplier_id);
+    await this.supplierRepo.update({ supplier_id }, { photo_url });
+    return this.findOne(supplier_id);
+  }
 }

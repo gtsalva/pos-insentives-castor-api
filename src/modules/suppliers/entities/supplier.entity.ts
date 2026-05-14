@@ -29,6 +29,9 @@ export class Supplier {
   @Column({ nullable: true })
   notes: string;
 
+  @Column({ type: 'text', nullable: true })
+  photo_url: string | null;
+
   @Column({ default: true })
   is_active: boolean;
 

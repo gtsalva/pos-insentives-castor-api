@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Patch, Body, Param,
+  Controller, Get, Post, Patch, Delete, Body, Param,
   UseGuards, ParseUUIDPipe, UploadedFile, UseInterceptors, BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -86,6 +86,16 @@ export class UsersController {
     if (!file) throw new BadRequestException('No se recibió archivo');
     const url = await this.storageService.uploadFile(file, 'avatars');
     return this.usersService.updatePhoto(id, url, { id: actor.sub, name: actor.name });
+  }
+
+  @Delete(':id/photo')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Eliminar fotografía de usuario' })
+  removePhoto(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() actor: JwtPayload,
+  ) {
+    return this.usersService.updatePhoto(id, null as unknown as string, { id: actor.sub, name: actor.name });
   }
 
   @Patch(':id')
