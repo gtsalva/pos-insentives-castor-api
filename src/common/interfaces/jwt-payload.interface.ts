@@ -5,4 +5,5 @@ export interface JwtPayload {
   email: string;
   role: Role;
   name: string;
+  photo_url: string | null;
 }

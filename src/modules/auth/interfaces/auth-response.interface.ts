@@ -7,5 +7,6 @@ export interface AuthResponse {
     email: string;
     full_name: string;
     role: Role;
+    photo_url: string | null;
   };
 }
