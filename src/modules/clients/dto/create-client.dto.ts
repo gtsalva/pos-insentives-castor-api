@@ -5,10 +5,12 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateClientDto {
   @ApiPropertyOptional({ example: '1234567-8' })
+  @Transform(({ value }) => value === '' ? undefined : value)
   @IsOptional()
   @IsString()
   @MaxLength(20)
@@ -33,11 +35,13 @@ export class CreateClientDto {
   business_name?: string;
 
   @ApiPropertyOptional({ example: 'juan@example.com' })
+  @Transform(({ value }) => value === '' ? undefined : value)
   @IsOptional()
   @IsEmail()
   email?: string;
 
   @ApiPropertyOptional({ example: '+502 5555-1234' })
+  @Transform(({ value }) => value === '' ? undefined : value)
   @IsOptional()
   @IsString()
   @MaxLength(20)
