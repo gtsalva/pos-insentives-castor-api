@@ -46,6 +46,9 @@ export class Product {
   @Column({ default: true })
   is_active: boolean;
 
+  @Column({ type: 'text', nullable: true })
+  image_url: string | null;
+
   @ManyToOne(() => Category, { nullable: true })
   @JoinColumn({ name: 'category_id' })
   category: Category;

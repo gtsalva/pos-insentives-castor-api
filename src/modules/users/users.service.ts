@@ -9,7 +9,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuditService, AuditActor } from '../audit/audit.service';
 
 const USER_SELECT: (keyof User)[] = [
-  'user_id', 'email', 'full_name', 'role', 'is_active', 'created_at',
+  'user_id', 'email', 'full_name', 'role', 'is_active', 'photo_url', 'created_at',
 ];
 
 @Injectable()
@@ -78,6 +78,25 @@ export class UsersService {
         entity_id: user_id,
         actor,
         metadata: { changes: dto as Record<string, unknown> },
+      });
+    }
+
+    return updated;
+  }
+
+  async updatePhoto(user_id: string, photo_url: string, actor?: AuditActor): Promise<User> {
+    const user = await this.findById(user_id);
+    if (!user) throw new NotFoundException(`Usuario ${user_id} no encontrado`);
+    await this.userRepo.update(user_id, { photo_url });
+    const updated = (await this.userRepo.findOne({ where: { user_id }, select: USER_SELECT }))!;
+
+    if (actor) {
+      this.auditService.log({
+        action: 'USER_PHOTO_UPDATED',
+        entity_type: 'User',
+        entity_id: user_id,
+        actor,
+        metadata: { photo_url },
       });
     }
 

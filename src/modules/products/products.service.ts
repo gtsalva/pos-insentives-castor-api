@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
-import { ProductResource } from './entities/product-resource.entity';
+import { ProductResource, ResourceType } from './entities/product-resource.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { SearchProductDto } from './dto/search-product.dto';
@@ -103,16 +103,31 @@ export class ProductsService {
       resource_type: dto.resource_type,
       sort_order: sortOrder,
     });
-    return this.resourceRepo.save(resource);
+    const saved = await this.resourceRepo.save(resource);
+
+    if (saved.resource_type === 'image' && saved.sort_order === 0) {
+      await this.productRepo.update(product_id, { image_url: saved.url });
+    }
+
+    return saved;
   }
 
   async deleteResource(product_id: string, resource_id: string): Promise<void> {
-    await this.findById(product_id);
+    const product = await this.findById(product_id);
     const resource = await this.resourceRepo.findOne({
       where: { resource_id, product_id },
     });
     if (!resource) throw new NotFoundException(`Recurso ${resource_id} no encontrado`);
+
     await this.resourceRepo.remove(resource);
+
+    if (resource.resource_type === 'image' && product.image_url === resource.url) {
+      const next = await this.resourceRepo.findOne({
+        where: { product_id, resource_type: 'image' as ResourceType },
+        order: { sort_order: 'ASC' },
+      });
+      await this.productRepo.update(product_id, { image_url: next?.url ?? null });
+    }
   }
 
   async setDefaultResource(product_id: string, resource_id: string): Promise<ProductResource[]> {
@@ -121,10 +136,17 @@ export class ProductsService {
     const queryRunner = this.resourceRepo.manager.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
+
+    let newFeaturedUrl: string | null = null;
+    let newFeaturedIsImage = false;
+
     try {
       const resources = await queryRunner.manager.find(ProductResource, { where: { product_id } });
       const target = resources.find(r => r.resource_id === resource_id);
       if (!target) throw new NotFoundException(`Recurso ${resource_id} no encontrado`);
+
+      newFeaturedUrl = target.url;
+      newFeaturedIsImage = target.resource_type === 'image';
 
       const rest = resources
         .filter(r => r.resource_id !== resource_id)
@@ -142,6 +164,11 @@ export class ProductsService {
     } finally {
       await queryRunner.release();
     }
+
+    if (newFeaturedIsImage && newFeaturedUrl) {
+      await this.productRepo.update(product_id, { image_url: newFeaturedUrl });
+    }
+
     return this.listResources(product_id);
   }
 }

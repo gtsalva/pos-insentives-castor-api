@@ -27,6 +27,9 @@ export class User {
   @Column({ default: true })
   is_active: boolean;
 
+  @Column({ type: 'text', nullable: true })
+  photo_url: string | null;
+
   @CreateDateColumn()
   created_at: Date;
 
