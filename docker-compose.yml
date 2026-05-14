@@ -32,8 +32,8 @@ services:
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-8h}
       - API_PORT=3001
       - NODE_ENV=development
-      - CORS_ORIGIN_CAJA=${CORS_ORIGIN_CAJA:-http://localhost:4200}
-      - CORS_ORIGIN_ADMIN=${CORS_ORIGIN_ADMIN:-http://localhost:4201}
+      - CORS_ORIGINS_CAJA=${CORS_ORIGINS_CAJA:-http://localhost:4200}
+      - CORS_ORIGINS_ADMIN=${CORS_ORIGINS_ADMIN:-http://localhost:4201}
     depends_on:
       - postgres
 
