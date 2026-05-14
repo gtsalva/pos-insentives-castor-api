@@ -1,17 +1,25 @@
 import { Module, OnModuleInit } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { mkdirSync } from 'fs';
 import { join } from 'path';
 import { StorageController } from './storage.controller';
+import { StorageService } from './storage.service';
 
 @Module({
   imports: [ConfigModule],
   controllers: [StorageController],
+  providers: [StorageService],
+  exports: [StorageService],
 })
 export class StorageModule implements OnModuleInit {
+  constructor(private readonly configService: ConfigService) {}
+
   onModuleInit(): void {
-    mkdirSync(join(process.cwd(), 'uploads', 'vouchers'), { recursive: true });
-    mkdirSync(join(process.cwd(), 'uploads', 'receipts'), { recursive: true });
-    mkdirSync(join(process.cwd(), 'uploads', 'products'), { recursive: true });
+    const provider = this.configService.get<string>('STORAGE_PROVIDER') ?? 'local';
+    if (provider === 'local') {
+      for (const folder of ['vouchers', 'receipts', 'products']) {
+        mkdirSync(join(process.cwd(), 'uploads', folder), { recursive: true });
+      }
+    }
   }
 }
