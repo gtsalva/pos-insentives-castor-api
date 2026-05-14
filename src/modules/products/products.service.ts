@@ -70,6 +70,13 @@ export class ProductsService {
     return this.productRepo.save(product);
   }
 
+  async remove(product_id: string): Promise<void> {
+    const product = await this.productRepo.findOne({ where: { product_id, is_active: true } });
+    if (!product) throw new NotFoundException(`Producto ${product_id} no encontrado`);
+    product.is_active = false;
+    await this.productRepo.save(product);
+  }
+
   async listResources(product_id: string): Promise<ProductResource[]> {
     await this.findById(product_id);
     return this.resourceRepo.find({

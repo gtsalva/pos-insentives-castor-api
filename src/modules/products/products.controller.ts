@@ -41,6 +41,13 @@ export class ProductsController {
     return this.productsService.update(id, dto);
   }
 
+  @Delete(':id')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Eliminar (desactivar) producto — solo ADMIN' })
+  remove(@Param('id') id: string) {
+    return this.productsService.remove(id);
+  }
+
   @Get(':id/resources')
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Listar recursos del producto' })
