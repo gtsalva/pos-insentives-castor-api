@@ -65,6 +65,13 @@ export class ProductMarginsFilterDto {
   @Min(0)
   @Max(100)
   min_margin_pct?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit?: number;
 }
 
 export class RevenueFilterDto {
@@ -91,4 +98,11 @@ export class RevenueFilterDto {
   @IsOptional()
   @IsUUID()
   category_id?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit?: number;
 }
