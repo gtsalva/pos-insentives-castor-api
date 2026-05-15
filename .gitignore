@@ -34,3 +34,4 @@ uploads/products/*
 
 # Claude-generated docs
 /manual
+/static_analysis_semgrep_1

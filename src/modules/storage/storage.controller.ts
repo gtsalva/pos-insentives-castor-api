@@ -23,7 +23,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { closeSync, existsSync, openSync, readSync } from 'fs';
-import { basename, extname, join } from 'path';
+import { basename, extname, resolve, sep } from 'path';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -122,10 +122,11 @@ export class StorageController {
   @Get('receipts/:filename')
   @ApiOperation({ summary: 'Descargar comprobante de pago' })
   serveReceipt(@Param('filename') filename: string, @Res() res: Response): void {
-    const safe = basename(filename);
-    const filePath = join(process.cwd(), 'uploads', 'receipts', safe);
+    const uploadsBase = resolve(process.cwd(), 'uploads', 'receipts');
+    const filePath = resolve(uploadsBase, basename(filename));
+    if (!filePath.startsWith(uploadsBase + sep)) throw new NotFoundException('Archivo no encontrado');
     if (!existsSync(filePath)) throw new NotFoundException('Archivo no encontrado');
-    if (!extname(safe)) res.setHeader('Content-Type', this.detectMime(filePath));
+    if (!extname(filePath)) res.setHeader('Content-Type', this.detectMime(filePath));
     res.sendFile(filePath);
   }
 
@@ -138,8 +139,9 @@ export class StorageController {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   private serveFile(folder: string, filename: string, res: Response): void {
-    const safe = basename(filename);
-    const filePath = join(process.cwd(), 'uploads', folder, safe);
+    const uploadsBase = resolve(process.cwd(), 'uploads', folder);
+    const filePath = resolve(uploadsBase, basename(filename));
+    if (!filePath.startsWith(uploadsBase + sep)) throw new NotFoundException('Archivo no encontrado');
     if (!existsSync(filePath)) throw new NotFoundException('Archivo no encontrado');
     res.sendFile(filePath);
   }
