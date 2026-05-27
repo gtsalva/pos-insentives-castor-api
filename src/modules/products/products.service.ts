@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
@@ -170,5 +170,95 @@ export class ProductsService {
     }
 
     return this.listResources(product_id);
+  }
+
+  async checkSku(
+    sku: string,
+    exclude_id?: string,
+  ): Promise<{ available: boolean; used_by_deleted: boolean }> {
+    const qb = this.productRepo
+      .createQueryBuilder('p')
+      .where('LOWER(p.sku) = LOWER(:sku)', { sku });
+
+    if (exclude_id) {
+      qb.andWhere('p.product_id != :exclude_id', { exclude_id });
+    }
+
+    const existing = await qb.getOne();
+
+    if (!existing) return { available: true, used_by_deleted: false };
+    if (!existing.is_active) return { available: false, used_by_deleted: true };
+    return { available: false, used_by_deleted: false };
+  }
+
+  async findDeleted(dto: SearchProductDto): Promise<PaginatedResult<Product>> {
+    const { query, page = 1, limit = 20 } = dto;
+    const qb = this.productRepo
+      .createQueryBuilder('p')
+      .leftJoinAndSelect('p.category', 'c')
+      .where('p.is_active = :active', { active: false });
+
+    if (query) {
+      qb.andWhere('(LOWER(p.name) LIKE :q OR LOWER(p.sku) LIKE :q)', {
+        q: `%${query.toLowerCase()}%`,
+      });
+    }
+
+    const [data, total] = await qb
+      .orderBy('p.updated_at', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return { data, total, page, limit };
+  }
+
+  async restore(product_id: string): Promise<Product> {
+    const product = await this.productRepo.findOne({
+      where: { product_id, is_active: false },
+    });
+    if (!product) {
+      throw new NotFoundException(`Producto ${product_id} no encontrado en eliminados`);
+    }
+    product.is_active = true;
+    return this.productRepo.save(product);
+  }
+
+  async permanentRemove(product_id: string): Promise<void> {
+    const product = await this.productRepo.findOne({
+      where: { product_id, is_active: false },
+    });
+    if (!product) {
+      throw new NotFoundException(`Producto ${product_id} no encontrado en eliminados`);
+    }
+
+    const [saleCount, purchaseCount, movementCount] = await Promise.all([
+      this.productRepo.manager.query<[{ count: string }]>(
+        'SELECT COUNT(*)::int AS count FROM sale_items WHERE product_id = $1',
+        [product_id],
+      ),
+      this.productRepo.manager.query<[{ count: string }]>(
+        'SELECT COUNT(*)::int AS count FROM purchase_order_items WHERE product_id = $1',
+        [product_id],
+      ),
+      this.productRepo.manager.query<[{ count: string }]>(
+        'SELECT COUNT(*)::int AS count FROM inventory_movements WHERE product_id = $1',
+        [product_id],
+      ),
+    ]);
+
+    const total =
+      Number(saleCount[0].count) +
+      Number(purchaseCount[0].count) +
+      Number(movementCount[0].count);
+
+    if (total > 0) {
+      throw new ConflictException(
+        `No se puede eliminar: el producto tiene ${total} registro(s) asociado(s) en ventas, compras o movimientos`,
+      );
+    }
+
+    await this.resourceRepo.delete({ product_id });
+    await this.productRepo.remove(product);
   }
 }

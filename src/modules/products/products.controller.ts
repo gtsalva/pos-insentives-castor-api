@@ -23,6 +23,20 @@ export class ProductsController {
     return this.productsService.search(dto);
   }
 
+  @Get('check-sku')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Verificar disponibilidad de SKU' })
+  checkSku(@Query('sku') sku: string, @Query('exclude_id') exclude_id?: string) {
+    return this.productsService.checkSku(sku, exclude_id);
+  }
+
+  @Get('deleted')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Listar productos eliminados (soft-delete)' })
+  findDeleted(@Query() dto: SearchProductDto) {
+    return this.productsService.findDeleted(dto);
+  }
+
   @Get(':id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.CASHIER, Role.SALESPERSON)
   findOne(@Param('id') id: string) {
@@ -33,6 +47,20 @@ export class ProductsController {
   @Roles(Role.ADMIN, Role.MANAGER)
   create(@Body() dto: CreateProductDto) {
     return this.productsService.create(dto);
+  }
+
+  @Post(':id/restore')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Restaurar producto eliminado' })
+  restore(@Param('id') id: string) {
+    return this.productsService.restore(id);
+  }
+
+  @Delete(':id/permanent')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Eliminar definitivamente (solo si no tiene registros asociados)' })
+  permanentRemove(@Param('id') id: string) {
+    return this.productsService.permanentRemove(id);
   }
 
   @Patch(':id')
