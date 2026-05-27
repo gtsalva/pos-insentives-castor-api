@@ -233,15 +233,15 @@ export class ProductsService {
     }
 
     const [saleCount, purchaseCount, movementCount] = await Promise.all([
-      this.productRepo.manager.query<[{ count: string }]>(
+      this.productRepo.manager.query<[{ count: number }]>(
         'SELECT COUNT(*)::int AS count FROM sale_items WHERE product_id = $1',
         [product_id],
       ),
-      this.productRepo.manager.query<[{ count: string }]>(
+      this.productRepo.manager.query<[{ count: number }]>(
         'SELECT COUNT(*)::int AS count FROM purchase_order_items WHERE product_id = $1',
         [product_id],
       ),
-      this.productRepo.manager.query<[{ count: string }]>(
+      this.productRepo.manager.query<[{ count: number }]>(
         'SELECT COUNT(*)::int AS count FROM inventory_movements WHERE product_id = $1',
         [product_id],
       ),
@@ -258,7 +258,18 @@ export class ProductsService {
       );
     }
 
-    await this.resourceRepo.delete({ product_id });
-    await this.productRepo.remove(product);
+    const queryRunner = this.productRepo.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      await queryRunner.manager.delete(ProductResource, { product_id });
+      await queryRunner.manager.remove(Product, product);
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

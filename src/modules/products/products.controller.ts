@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -27,6 +27,9 @@ export class ProductsController {
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Verificar disponibilidad de SKU' })
   checkSku(@Query('sku') sku: string, @Query('exclude_id') exclude_id?: string) {
+    if (!sku || sku.trim().length < 2) {
+      throw new BadRequestException('El parámetro sku debe tener al menos 2 caracteres');
+    }
     return this.productsService.checkSku(sku, exclude_id);
   }
 
