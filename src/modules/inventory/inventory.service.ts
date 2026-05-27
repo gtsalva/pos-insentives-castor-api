@@ -59,6 +59,31 @@ export class InventoryService {
     return { data, total, page, limit };
   }
 
+  async getSummary(): Promise<{
+    total_cost_value: number;
+    total_sale_value: number;
+    low_stock_count: number;
+  }> {
+    const rows = await this.productRepo.manager.query<[{
+      total_cost_value: string;
+      total_sale_value: string;
+      low_stock_count: string;
+    }]>(
+      `SELECT
+        COALESCE(SUM(stock * COALESCE(cost_price, 0)), 0)::numeric(14,2) AS total_cost_value,
+        COALESCE(SUM(stock * unit_price), 0)::numeric(14,2)             AS total_sale_value,
+        COUNT(*) FILTER (WHERE stock <= min_stock)::int                  AS low_stock_count
+       FROM products
+       WHERE is_active = true`,
+    );
+    const row = rows[0];
+    return {
+      total_cost_value: Number(row.total_cost_value),
+      total_sale_value: Number(row.total_sale_value),
+      low_stock_count:  Number(row.low_stock_count),
+    };
+  }
+
   async adjust(dto: AdjustStockDto, created_by: string, created_by_name: string): Promise<InventoryMovement> {
     const movement = await this.dataSource.transaction(async (manager) => {
       const product = await manager.findOne(Product, {

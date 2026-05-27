@@ -23,6 +23,12 @@ export class InventoryController {
     return this.inventoryService.getAll(dto);
   }
 
+  @Get('summary')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  getSummary() {
+    return this.inventoryService.getSummary();
+  }
+
   @Get(':productId/movements')
   @Roles(Role.ADMIN, Role.MANAGER)
   getMovements(
