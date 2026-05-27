@@ -24,6 +24,12 @@ export class SettingsService {
   async update(dto: UpdateStoreSettingsDto): Promise<StoreSettings> {
     const settings = await this.get();
     settings.store_name = dto.store_name;
+    if (dto.min_price_margin !== undefined) {
+      settings.min_price_margin = dto.min_price_margin;
+    }
+    if (dto.sale_price_margin !== undefined) {
+      settings.sale_price_margin = dto.sale_price_margin;
+    }
     return this.repo.save(settings);
   }
 }
