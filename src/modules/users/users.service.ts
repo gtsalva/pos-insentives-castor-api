@@ -6,6 +6,7 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { AdminResetPasswordDto } from './dto/admin-reset-password.dto';
 import { AuditService, AuditActor } from '../audit/audit.service';
 
 const USER_SELECT: (keyof User)[] = [
@@ -114,6 +115,23 @@ export class UsersService {
     if (!valid) throw new BadRequestException('La contraseña actual es incorrecta');
     const password_hash = await bcrypt.hash(dto.new_password, 10);
     await this.userRepo.update(user_id, { password_hash });
+  }
+
+  async resetPasswordByAdmin(user_id: string, dto: AdminResetPasswordDto, actor?: AuditActor): Promise<void> {
+    const user = await this.findById(user_id);
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    const password_hash = await bcrypt.hash(dto.new_password, 10);
+    await this.userRepo.update(user_id, { password_hash });
+
+    if (actor) {
+      this.auditService.log({
+        action: 'USER_PASSWORD_RESET',
+        entity_type: 'User',
+        entity_id: user_id,
+        actor,
+        metadata: { reset_by: actor.id },
+      });
+    }
   }
 
   async toggleStatus(user_id: string, actor?: AuditActor): Promise<User> {

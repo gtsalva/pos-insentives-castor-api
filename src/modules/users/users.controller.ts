@@ -10,6 +10,7 @@ import { StorageService } from '../storage/storage.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { AdminResetPasswordDto } from './dto/admin-reset-password.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -35,6 +36,17 @@ export class UsersController {
     @Body() dto: ChangePasswordDto,
   ) {
     await this.usersService.changePassword(user.sub, dto);
+  }
+
+  @Patch(':id/password')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Resetear contraseña de un usuario (solo administradores)' })
+  async resetPassword(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AdminResetPasswordDto,
+    @CurrentUser() actor: JwtPayload,
+  ) {
+    await this.usersService.resetPasswordByAdmin(id, dto, { id: actor.sub, name: actor.name });
   }
 
   @Get()
