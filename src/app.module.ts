@@ -27,6 +27,7 @@ import { CustomOrderPrintReceipt }      from './modules/custom-orders/entities/c
 import { StoreSettings } from './modules/settings/entities/store-settings.entity';
 import { AuditModule } from './modules/audit/audit.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { AdminToolsModule } from './modules/admin-tools/admin-tools.module';
 import { CustomOrdersModule } from './modules/custom-orders/custom-orders.module';
 import { ShiftsModule } from './modules/shifts/shifts.module';
 import { UsersModule } from './modules/users/users.module';
@@ -85,6 +86,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     ShiftsModule,
     CustomOrdersModule,
     SettingsModule,
+    AdminToolsModule,
   ],
 })
 export class AppModule {}

@@ -1,4 +1,4 @@
-import { IsBoolean, IsInt, IsOptional, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 export class GetInventoryDto {
@@ -18,4 +18,12 @@ export class GetInventoryDto {
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   low_stock?: boolean;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsUUID()
+  category_id?: string;
 }

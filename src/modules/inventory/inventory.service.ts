@@ -24,7 +24,7 @@ export class InventoryService {
   ) {}
 
   async getAll(dto: GetInventoryDto): Promise<PaginatedResult<Product>> {
-    const { page = 1, limit = 20, low_stock } = dto;
+    const { page = 1, limit = 20, low_stock, search, category_id } = dto;
 
     const qb = this.productRepo
       .createQueryBuilder('p')
@@ -33,6 +33,16 @@ export class InventoryService {
 
     if (low_stock) {
       qb.andWhere('p.stock <= p.min_stock');
+    }
+
+    if (search) {
+      qb.andWhere('(p.name ILIKE :search OR p.sku ILIKE :search)', {
+        search: `%${search}%`,
+      });
+    }
+
+    if (category_id) {
+      qb.andWhere('p.category_id = :category_id', { category_id });
     }
 
     const [data, total] = await qb
