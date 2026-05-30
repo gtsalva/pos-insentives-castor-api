@@ -10,6 +10,7 @@ import { CustomOrderStatus }  from './custom-order-status.enum';
 import { CustomOrderItem }              from './custom-order-item.entity';
 import { CustomOrderPayment }           from './custom-order-payment.entity';
 import { CustomOrderCommissionPayment } from './custom-order-commission-payment.entity';
+import { CustomOrderPrintReceipt }      from './custom-order-print-receipt.entity';
 
 const n2f = { to: (v: number | null) => v, from: (v: string | null) => (v !== null ? parseFloat(v) : null) };
 
@@ -56,6 +57,7 @@ export class CustomOrder {
   @OneToMany(() => CustomOrderItem,              (i)  => i.custom_order,  { cascade: true })  items:               CustomOrderItem[];
   @OneToMany(() => CustomOrderPayment,           (p)  => p.custom_order,  { cascade: false }) payments:            CustomOrderPayment[];
   @OneToMany(() => CustomOrderCommissionPayment, (cp) => cp.custom_order, { cascade: false }) commission_payments: CustomOrderCommissionPayment[];
+  @OneToMany(() => CustomOrderPrintReceipt,      (pr) => pr.custom_order, { cascade: false }) print_receipts:     CustomOrderPrintReceipt[];
 
   @CreateDateColumn() created_at: Date;
   @UpdateDateColumn() updated_at: Date;

@@ -1,8 +1,10 @@
 import {
   Controller, Get, Post, Patch, Param, Body, Query,
-  UseGuards, ParseUUIDPipe,
+  UseGuards, ParseUUIDPipe, UploadedFile, UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { JwtAuthGuard }      from '../../common/guards/jwt-auth.guard';
 import { RolesGuard }        from '../../common/guards/roles.guard';
 import { Roles }             from '../../common/decorators/roles.decorator';
@@ -105,6 +107,19 @@ export class CustomOrdersController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.service.registerCommissionPayment(id, dto, { id: user.sub, name: user.name });
+  }
+
+  @Post(':id/print-receipts')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.SALESPERSON, Role.CASHIER)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } }))
+  registerPrintReceipt(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.registerPrintReceipt(id, { id: user.sub, name: user.name }, file);
   }
 
   @Patch(':id/delivery-date')

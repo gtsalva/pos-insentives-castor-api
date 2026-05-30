@@ -113,6 +113,12 @@ export class StorageController {
 
   // ── Serve endpoints (local dev — en prod R2 sirve desde CDN) ─────────────
 
+  @Get('print-receipts/:filename')
+  @ApiOperation({ summary: 'Descargar comprobante de cotización (local dev)' })
+  servePrintReceipt(@Param('filename') filename: string, @Res() res: Response): void {
+    this.serveFile('print-receipts', filename, res);
+  }
+
   @Get('vouchers/:filename')
   @ApiOperation({ summary: 'Descargar comprobante PDF' })
   serveVoucher(@Param('filename') filename: string, @Res() res: Response): void {

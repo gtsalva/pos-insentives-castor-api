@@ -34,4 +34,5 @@ uploads/products/*
 
 # Claude-generated docs
 /manual
-/static_analysis_semgrep_1
+/static_analysis_semgrep_1uploads/print-receipts/*
+!uploads/print-receipts/.gitkeep

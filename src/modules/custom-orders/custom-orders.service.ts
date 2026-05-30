@@ -14,6 +14,7 @@ import { RegisterPaymentDto }            from './dto/register-payment.dto';
 import { RegisterCommissionPaymentDto }  from './dto/register-commission-payment.dto';
 import { CustomOrderQueryDto }           from './dto/custom-order-query.dto';
 import { AuditService, AuditActor } from '../audit/audit.service';
+import { StorageService } from '../storage/storage.service';
 
 export interface PaginatedResult<T> { data: T[]; total: number; page: number; limit: number; }
 
@@ -28,6 +29,7 @@ export class CustomOrdersService {
     @InjectRepository(CustomOrderCommissionPayment)  private readonly commissionPaymentRepo: Repository<CustomOrderCommissionPayment>,
     private readonly dataSource: DataSource,
     private readonly auditService: AuditService,
+    private readonly storageService: StorageService,
   ) {}
 
   async findAll(dto: CustomOrderQueryDto): Promise<PaginatedResult<CustomOrder>> {
@@ -50,7 +52,13 @@ export class CustomOrdersService {
   async findOne(custom_order_id: string): Promise<CustomOrder> {
     const order = await this.orderRepo.findOne({
       where: { custom_order_id },
-      relations: ['salesperson', 'client', 'supplier', 'items', 'payments', 'payments.received_by', 'commission_payments', 'commission_payments.paid_by'],
+      relations: [
+        'salesperson', 'client', 'supplier',
+        'items',
+        'payments', 'payments.received_by',
+        'commission_payments', 'commission_payments.paid_by',
+        'print_receipts', 'print_receipts.printed_by',
+      ],
     });
     if (!order) throw new NotFoundException(`Cotización ${custom_order_id} no encontrada`);
     return order;
@@ -248,6 +256,21 @@ export class CustomOrdersService {
     this.auditService.log({
       action: 'CUSTOM_ORDER_COMMISSION_PAID', entity_type: 'CustomOrder',
       entity_id: custom_order_id, actor, metadata: { amount: dto.amount },
+    });
+    return this.findOne(custom_order_id);
+  }
+
+  async registerPrintReceipt(custom_order_id: string, actor: AuditActor, file?: Express.Multer.File): Promise<CustomOrder> {
+    const order = await this.findOne(custom_order_id);
+    const pdf_url = file ? await this.storageService.uploadFile(file, 'print-receipts') : null;
+    await this.dataSource.query(
+      `INSERT INTO custom_order_print_receipts (custom_order_id, printed_by_id, pdf_url) VALUES ($1, $2, $3)`,
+      [custom_order_id, actor.id, pdf_url],
+    );
+    this.auditService.log({
+      action: 'CUSTOM_ORDER_PRINT_RECEIPT', entity_type: 'CustomOrder',
+      entity_id: custom_order_id, actor,
+      metadata: { order_number: order.order_number },
     });
     return this.findOne(custom_order_id);
   }

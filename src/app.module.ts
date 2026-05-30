@@ -23,6 +23,7 @@ import { CustomOrder }                   from './modules/custom-orders/entities/
 import { CustomOrderItem }              from './modules/custom-orders/entities/custom-order-item.entity';
 import { CustomOrderPayment }           from './modules/custom-orders/entities/custom-order-payment.entity';
 import { CustomOrderCommissionPayment } from './modules/custom-orders/entities/custom-order-commission-payment.entity';
+import { CustomOrderPrintReceipt }      from './modules/custom-orders/entities/custom-order-print-receipt.entity';
 import { StoreSettings } from './modules/settings/entities/store-settings.entity';
 import { AuditModule } from './modules/audit/audit.module';
 import { SettingsModule } from './modules/settings/settings.module';
@@ -60,7 +61,7 @@ import { ReportsModule } from './modules/reports/reports.module';
           Supplier, PurchaseOrder, PurchaseOrderItem,
           IncentivePeriod, IncentiveLiquidation,
           AuditLog, ShiftClose, Reconciliation,
-          CustomOrder, CustomOrderItem, CustomOrderPayment, CustomOrderCommissionPayment,
+          CustomOrder, CustomOrderItem, CustomOrderPayment, CustomOrderCommissionPayment, CustomOrderPrintReceipt,
           StoreSettings,
         ],
         migrations: ['dist/database/migrations/*.js'],
