@@ -68,6 +68,8 @@ import { ReportsModule } from './modules/reports/reports.module';
         migrations: ['dist/database/migrations/*.js'],
         synchronize: false,
         logging: config.get('NODE_ENV') === 'development',
+        // Toda escritura de timestamps (now()) usa horario de Guatemala
+        extra: { options: '-c timezone=America/Guatemala' },
       }),
     }),
     UsersModule,

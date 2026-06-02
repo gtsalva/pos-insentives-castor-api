@@ -18,4 +18,6 @@ export default new DataSource({
     ? ['dist/database/migrations/*.js']
     : ['src/database/migrations/*.ts'],
   synchronize: false,
+  // Misma TZ de sesión que la app (now() escribe horario de Guatemala)
+  extra: { options: '-c timezone=America/Guatemala' },
 });
