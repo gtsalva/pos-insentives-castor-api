@@ -167,11 +167,18 @@ export class SalesService {
       .leftJoinAndSelect('s.items', 'i')
       .leftJoinAndSelect('s.client', 'c');
 
-    if (from_date) qb.andWhere('s.created_at >= :from_date', { from_date });
+    // from_date/to_date se interpretan como días de calendario de Guatemala
+    // (UTC-6): el día arranca a las 06:00Z. Esto mantiene visibles las ventas
+    // del día aun cuando el reloj UTC ya cruzó la medianoche (mismo criterio
+    // que ShiftsService.guatemalaDayBounds).
+    if (from_date) {
+      const start = new Date(`${from_date.slice(0, 10)}T06:00:00.000Z`);
+      qb.andWhere('s.created_at >= :from_start', { from_start: start });
+    }
     if (to_date) {
-      const end = new Date(to_date);
-      end.setHours(23, 59, 59, 999);
-      qb.andWhere('s.created_at <= :to_date', { to_date: end });
+      const dayStart = new Date(`${to_date.slice(0, 10)}T06:00:00.000Z`);
+      const end = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
+      qb.andWhere('s.created_at <= :to_end', { to_end: end });
     }
     if (payment_method) qb.andWhere('s.payment_method = :payment_method', { payment_method });
     if (status) qb.andWhere('s.status = :status', { status });
